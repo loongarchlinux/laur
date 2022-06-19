@@ -1,0 +1,60 @@
+# Maintainer: Alad Wenter <alad@archlinux.org>
+# Contributor: Luna Jernberg <droidbittin@gmail.com>
+# Contributor: Hilton Medeiros <medeiros.hilton@gmail.com>
+# Contributor: Simon Brulhart <simon@brulhart.me>
+# Contributor: Det <nimetonmaili g-mail>, Achilleas Pipinellis, speed145a, Schnouki, aus
+
+pkgname=firefox-bin
+_pkgname=firefox
+pkgver=100.0
+pkgrel=2
+pkgdesc="Standalone web browser from mozilla.org - Static binaries from upstream"
+arch=('loongarch64' 'x86_64')
+url="https://www.mozilla.org/en-US/firefox/new/"
+license=(MPL GPL LGPL)
+depends=(gtk3 libxt mime-types dbus-glib nss ttf-font libevent)
+optdepends=('ffmpeg: H264/AAC/MP3 decoding'
+            'networkmanager: Location detection via available WiFi networks'
+            'libnotify: Notification integration'
+            'pulseaudio: Audio support'
+            'speech-dispatcher: Text-to-Speech'
+            'hunspell-en_US: Spell checking, American English')
+provides=("firefox=$pkgver")
+conflicts=('firefox')
+source=("http://public.loongarch.dev/sources/firefox/firefox-$pkgver.tar.zst/2fed3ac5d6fcd8c2872c4b69d9ece6d0/firefox-$pkgver.tar.zst"
+        $_pkgname.sh
+        $_pkgname.desktop)
+sha256sums=('fd245600085c193ce9054035ee85e5834e38ac51c428173d463d8617043d10a5'
+            'ed4689c68b5030f271ce5509aabc63df24a8c324b6908134449cdc6a48e4bd21'
+            'c64008cbf01956ce3dba693230670de58fa9487ad19f4ba76614af13beb1b8ef')
+
+package() {
+  # Create directories
+  mkdir -p "$pkgdir"/usr/bin
+  mkdir -p "$pkgdir"/usr/share/applications
+  mkdir -p "$pkgdir"/opt
+
+  # Install
+  cp -r firefox-$pkgver/ "$pkgdir"/opt/$pkgname
+
+  # Launchers
+  install -m755 $_pkgname.sh "$pkgdir"/usr/bin/$_pkgname
+
+  # Desktops
+  install -m644 *.desktop "$pkgdir"/usr/share/applications/
+
+  # Icons
+  for i in 16x16 32x32 48x48 64x64 128x128; do
+    install -d "$pkgdir"/usr/share/icons/hicolor/$i/apps/
+    ln -s /opt/$pkgname/browser/chrome/icons/default/default${i/x*}.png \
+          "$pkgdir"/usr/share/icons/hicolor/$i/apps/$_pkgname.png
+  done
+
+  # Use system-provided dictionaries
+  #rm -r "$pkgdir"/opt/$_pkgname/dictionaries
+  ln -Ts /usr/share/hunspell "$pkgdir"/opt/$pkgname/dictionaries
+  ln -Ts /usr/share/hyphen "$pkgdir"/opt/$pkgname/hyphenation
+
+  # Use system certificates
+  ln -sf /usr/lib/libnssckbi.so "$pkgdir"/opt/$pkgname/libnssckbi.so
+}
