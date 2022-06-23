@@ -1,0 +1,19 @@
+# Maintainer: Tobias Powalowski <tpowa@archlinux.org>
+
+pkgname=ovmf
+pkgver=202205
+pkgrel=1
+pkgdesc="Firmware for Virtual Machines (x86_64, i686)"
+arch=('any')
+url="https://github.com/tianocore/tianocore.github.io/wiki/OVMF"
+license+=(MIT)
+options=('!makeflags' '!strip')
+provides=(edk2-ovmf)
+conflicts=(edk2-ovmf)
+install="${pkgname}.install"
+source=(https://mirror.f4st.host/archlinux/extra/os/x86_64/edk2-ovmf-202205-1-any.pkg.tar.zst)
+sha1sums=('c3df025abf3c2fdcfadee75ba1e373e2ff41afc8')
+
+package() {
+  cp -r usr "${pkgdir}"
+}
