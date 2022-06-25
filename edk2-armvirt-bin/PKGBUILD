@@ -1,0 +1,19 @@
+# Maintainer: David Runge <dvzrv@archlinux.org>
+# Contributor: Alexander Epaneshnikov <alex19ep@archlinux.org>
+
+pkgname=edk2-armvirt-bin
+pkgver=202205
+pkgrel=1
+pkgdesc="Firmware for Virtual Machines (aarch64)"
+arch=(any)
+url="https://github.com/tianocore/tianocore.github.io/wiki/ArmVirtPkg"
+license=(BSD)
+provides=(edk2-armvirt)
+conflicts=(edk2-armvirt)
+options=(!makeflags)
+source=("https://america.mirror.pkgbuild.com/extra/os/x86_64/edk2-armvirt-${pkgver}-${pkgrel}-any.pkg.tar.zst")
+sha256sums=('b3dca2613759a7e85be8d542de1c13994ede6f4cf7b58056e13d724dfef27818')
+
+package() {
+  cp -r usr "${pkgdir}"
+}
