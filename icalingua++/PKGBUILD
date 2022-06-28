@@ -1,0 +1,21 @@
+pkgname=icalingua++
+pkgver=2.6.5
+pkgrel=1
+pkgdesc="A branch of deleted Icalingua,with limited support"
+arch=('any')
+url="https://github.com/Icalingua-plus-plus/Icalingua-plus-plus"
+license=('AGPL3')
+replaces=(electron-qq icalingua-plus-plus)
+conflicts=(electron-qq)
+provides=(electron-qq icalingua)
+depends=(electron17 libappindicator-gtk3)
+optdepends=("mongodb: Provides storage"
+            "redis: Provides storage")
+source=("http://loongarch.zhcn.cc/list/icalingua/icalingua-${pkgver}.tar.xz/ca98bc370c5ab1921c69ebbf89050d54/icalingua-${pkgver}.tar.xz")
+sha256sums=('101ead6fc9fccc645bd932913f933f298f9b3d1739b7483e04caff52a9f99dcb')
+OPTIONS=(!strip)
+
+package() {
+  mkdir -p ${pkgdir}/usr
+  cp -r usr/* ${pkgdir}/usr
+}
