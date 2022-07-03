@@ -3,22 +3,15 @@
 
 pkgname=qemu-user-static
 pkgdesc="Statically linked binaries of Qemu with user emulation. Useful for containers/chroot environment with binfmt."
-pkgver=7.0.0
+pkgver=7.0.50
 pkgrel=1
 arch=(x86_64 aarch64 loongarch64)
 license=(GPL2 LGPL2.1)
 url="http://wiki.qemu.org/"
 depends=()
 makedepends=(python meson glib2-static pcre-static)
-source=(https://download.qemu.org/qemu-$pkgver.tar.xz{,.sig})
-sha512sums=('44ecd10c018a3763e1bc87d1d35b98890d0d5636acd69fe9b5cadf5024d5af6a31684d60cbe1c3370e02986434c1fb0ad99224e0e6f6fe7eda169992508157b1'
-            'SKIP')
-validpgpkeys=('CEACC9E15534EBABB82D3FA03353C9CEF108B584')
-
-case $CARCH in
-  i?86) _corearch=i386 ;;
-  x86_64) _corearch=x86_64 ;;
-esac
+source=(http://public.loongarch.dev/sources/qemu/qemu-${pkgver}.tar.xz/a3fd1c3b18e325b5bce35557f9d6a47c/qemu-${pkgver}.tar.xz)
+sha512sums=('a06cdbc27f67c1ec0aae8a028275e28e856946b17debec3d2d5fcb368227dd6c28897da7bc0b3d2e7186d7f150607e50d35c9e467b6de5092088fd61b2141def')
 
 # If non empty, always run the configure script
 : "${FORCE_CONFIGURE:=1}"
@@ -30,13 +23,15 @@ prepare() {
   #sed -i 's/vte-2\.90/vte-2.91/g' configure
 }
 
+#--interp-prefix=/usr/%M-linux-gnu
+#--disable-vhost-vsock \
+#--disable-vhost-scsi \
 _configure() {
     ../qemu-${pkgver}/configure \
             --prefix=/usr \
             --sysconfdir=/etc \
             --localstatedir=/var \
             --libexecdir=/usr/lib/qemu \
-            --interp-prefix=/usr/%M-linux-gnu \
             --enable-linux-user \
             --disable-debug-info \
             --disable-bsd-user \
@@ -62,8 +57,6 @@ _configure() {
             --disable-vhost-net \
             --disable-vhost-crypto \
             --disable-vhost-user \
-            --disable-vhost-vsock \
-            --disable-vhost-scsi \
             --disable-tpm \
             --disable-qom-cast-debug \
             --disable-capstone \
