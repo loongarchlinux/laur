@@ -1,0 +1,38 @@
+pkgbase=lat-runtime
+pkgname=('lat-runtime-i386' 'lat-runtime-x86_64')
+pkgver=1.3.0
+_base_version=1.2.0
+_base_pkgdate=20220316
+_extra_pkgdate=20220722
+pkgrel=1
+pkgdesc="lat runtime libraries for i386"
+arch=('x86_64' 'loong64')
+url="http://loongnix.cn"
+license=('BSD')
+depends=('gcc-libs' 'lat')
+groups=('lat')
+source=(x86-runtime-base.deb::https://pkg.loongnix.cn/loongnix/pool/main/i/i386-runtime-base/i386-runtime-base_${_base_version}~${_base_pkgdate}.lnd.1_loongarch64.deb
+        x86-runtime-extra.deb::https://pkg.loongnix.cn/loongnix/pool/main/i/i386-runtime-extra/i386-runtime-extra_${pkgver}~${_extra_pkgdate}.lnd.1_loongarch64.deb)
+noextract=(x86-runtime-base.deb x86-runtime-extra.deb)
+sha256sums=('dc7c098ea7c4edeefa2266bbf926a717908efac9a856b64f5fb7acb0474f0738'
+            'ff6c18546aa0731e2b8f53e235a6acebca04075cc0fd5a8c71053947ff6b54a6')
+OPTIONS=(!strip)
+
+build() {
+    for i in ${noextract[@]}; do
+        ar x $i
+        tar xf data.tar.xz
+    done
+}
+
+package_lat-runtime-i386() {
+  mkdir -p ${pkgdir}/usr/gnemul
+  cp -r usr/gnemul/latx-i386/ ${pkgdir}/usr/gnemul/latx-i386
+}
+
+package_lat-runtime-x86_64() {
+  pkgdesc="lat runtime libraries for x86_64"
+  mkdir -p ${pkgdir}/usr/gnemul
+
+  cp -r usr/gnemul/latx-x86_64/ ${pkgdir}/usr/gnemul/latx-x86_64
+}
