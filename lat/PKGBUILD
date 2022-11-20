@@ -7,16 +7,14 @@ arch=('loong64')
 url="http://loongnix.cn"
 license=('BSD')
 groups=('lat')
-depends=('gcc-libs' 'zenity')
+depends=('gcc-libs')
 optdepends=(lat-runtime-i386 lat-runtime-x86_64)
 provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 install=lat.install
 OPTIONS=(strip)
-source=(lat-${pkgver}-${pkgdate}.tar.xz
-        wine-run)
-sha256sums=('f3388fcd789a576cf044a4f175938626ec3774936bb293eefe502cfbc2490fa0'
-            '9498b8b217fb3ea61cdbf2c94013dc2d3a263083a3e7084a5ca3a8402e598bdc')
+source=(lat-${pkgver}-${pkgdate}.tar.xz)
+sha256sums=('f3388fcd789a576cf044a4f175938626ec3774936bb293eefe502cfbc2490fa0')
 
 package() {
   cd $pkgname-$pkgver
@@ -25,8 +23,4 @@ package() {
 
   echo "vm.mmap_min_addr = 65536" > mmap_min_addr.conf
   install -Dm644 mmap_min_addr.conf ${pkgdir}/etc/sysctl.d/mmap_min_addr.conf
-
-  install -Dm755 $srcdir/wine-run ${pkgdir}/usr/bin/wine-run
 }
-sha256sums=('f3388fcd789a576cf044a4f175938626ec3774936bb293eefe502cfbc2490fa0'
-            '9dceef53f7d5d893f3863c89239829272009e6c0ec6064caa812c59b90162f74')
