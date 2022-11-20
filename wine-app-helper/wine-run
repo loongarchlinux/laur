@@ -1,0 +1,155 @@
+#!/usr/bin/sh
+
+######################################################################
+# vim: set ts=4 sts=4 sw=4 expandtab:
+# @author      : yetist (yetist@yetipc)
+# @file        : a
+# @created     : 星期六 11月 19, 2022 10:51:30 CST
+#
+# @description :
+######################################################################
+
+APP_TOP_DIR="/opt/wine-apps"
+WINE_DIR_PREFIX="/opt/wine"
+
+APP_NAME=$(basename $0)
+APP_NAME_CN=""
+APP_VERSION="1.0"
+APP_ARCHIVE=""
+APP_IGNORE=""
+APP_RUN_CMD=""
+APP_RUN_PATH=""
+APP_RUN_WINE=""
+
+APP_DIR=$APP_TOP_DIR/$APP_NAME
+
+if [ -f $APP_DIR/$APP_NAME.metainfo ]; then
+    source $APP_DIR/$APP_NAME.metainfo
+fi
+
+#"""
+#APP_NAME=wine-cs            # App 名称
+#APP_NAME_CN=wine-cs         # App 中文名称
+#APP_VERSION=1.6             # App 版本号
+#APP_ARCHIVE=                # App 压缩包文件名
+#APP_IGNORE=                 # App 升级时需要忽略的文件列表
+#APP_RUN_CMD=                # App 运行命令
+#APP_RUN_PATH=               # App 运行时需要进入的路径
+#APP_RUN_WINE=6.0            # App 运行时使用的 wine 版本号
+#"""
+
+WINE_DIR=${WINE_DIR_PREFIX}-${APP_RUN_WINE}
+export WINEDLLPATH=$WINE_DIR/lib:$WINE_DIR/lib64
+export WINEPREDLL="$APP_DIR/lib"
+export WINEPREFIX=$HOME/.local/share/wineprefixes/$APP_NAME
+WINE_CMD="wine"
+
+if [ "x$APP_RUN_WINE" != "x" ] && [ -x $WINE_DIR/bin/wine ]; then
+    WINE_CMD=$WINE_DIR/bin/wine
+fi
+
+app_uninstall()
+{
+    rm -rf $WINEPREFIX
+}
+
+usage()
+{
+    echo " Extra Commands:"
+    echo " -e/--remove    Remove extract app files"
+    echo " -h/--help      Show program help info"
+}
+
+fix_disk_link()
+{
+    if [ -d $WINEPREFIX ];then
+        pushd "$WINEPREFIX/dosdevices" >/dev/null
+        rm c: z:
+        ln -sf ../drive_c c:
+        ln -sf / z:
+        popd > /dev/null
+    fi
+}
+
+app_install()
+{
+    mkdir -p $WINEPREFIX
+    tar xf $APP_DIR/$APP_ARCHIVE -C $WINEPREFIX
+    mv "$WINEPREFIX/drive_c/users/@current_user@" "$WINEPREFIX/drive_c/users/$USER"
+    sed -i "s#@current_user@#$USER#g" $WINEPREFIX/*.reg
+    echo "$APP_VERSION" > "$WINEPREFIX/app_version"
+    fix_disk_link
+}
+
+app_update()
+{
+    if [ -f "$WINEPREFIX/app_version" ] && [ "$(cat "$WINEPREFIX/app_version")" = "$APP_VERSION" ];then
+        return
+    fi
+
+    tar xf $APP_DIR/$APP_ARCHIVE -C $WINEPREFIX --exclude-from=$APP_IGNORE
+
+    rm -rf $WINEPREFIX/drive_c/users/\@current_user\@
+
+    echo "$APP_VERSION" > "$WINEPREFIX/app_version"
+}
+
+app_run()
+{
+    local name=$APP_NAME
+    if [ "x$APP_NAME_CN" != "x" ];then
+        name=$APP_NAME_CN
+    fi
+    if [ ! -d "$WINEPREFIX" ]; then
+        app_install | progressbar $name "首次启动，初始化$name中..."
+    else
+        app_update | progressbar $name "正在更新$name中..."
+    fi
+    if [ -n "$APP_RUN_PATH" ];then
+        cd "$WINEPREFIX/$APP_RUN_PATH"
+        exec $WINE_CMD $APP_RUN_CMD
+    else
+        exec $WINE_CMD "$WINEPREFIX/$APP_RUN_CMD"
+    fi
+}
+
+progressbar()
+{
+    WINDOWID="" zenity --progress --title="$1" --text="$2" --pulsate --width=400 --auto-close --no-cancel \
+        || WINDOWID="" zenity --progress --title="$1" --text="$2" --pulsate --width=400 --auto-close
+}
+
+########
+if ! command -v zenity >/dev/null 2>&1;then
+    echo "please install package zenity"
+    exit 1
+fi
+
+if [ $APP_NAME == "wine-run" ]; then
+    echo "nothing to do"
+    exit 1
+fi
+
+if [ $# -gt 1 ];then
+    echo "Invalid option"
+    echo "Use -h|--help to get help"
+    exit 1
+fi
+
+if [ -n "$1" ];then
+    case $1 in
+        "-e" | "--remove")
+            app_uninstall
+            ;;
+        "-h" | "--help")
+            usage
+            ;;
+        *)
+            echo "Invalid option"
+            echo "Use -h|--help to get help"
+            exit 1
+            ;;
+    esac
+else
+    app_run
+fi
