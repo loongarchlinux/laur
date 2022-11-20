@@ -1,31 +1,44 @@
 # Maintainer: FzerorubigD <Fzerorubigd {AT} GMail {DOT} com>
 pkgname=cow-proxy
-pkgver=0.9.8
+pkgver=0.7.2.r271.1ad9250
 pkgrel=1
 pkgdesc="HTTP proxy written in Go. COW can automatically identify blocked sites and use parent proxies to access"
-arch=('i686' 'x86_64' 'armv5tel' 'armv6l' 'armv7l' 'loongarch64')
+arch=('i686' 'x86_64' 'armv5tel' 'armv6l' 'armv7l' 'loong64')
 url="https://github.com/cyfdecyf/cow"
 license=('custom')
 depends=()
-makedepends=()
+makedepends=(go git)
 conflicts=(cow-proxy-git)
 
-source=(cow@.service
-        cow_user.service
-        "cow-${pkgver}.tar.gz::https://github.com/cyfdecyf/cow/archive/refs/tags/${pkgver}.tar.gz")
-sha256sums=('e83d404f629d171fbe94d7cdbe52ffc47c442a3474c004e4b82cb92abe287655'
-            '1d102c09ca04773d6452c222708f84507cad0860172deb5466543e4eaff25b5e'
-            '17ef88ddc69c302ec50f7924c549fc3bcd3ee9abaa73081713024295371cd5e7')
+source=("cow-proxy::git+https://github.com/yetist/cow.git#branch=next"
+        cow@.service
+        cow_user.service)
+sha256sums=('SKIP'
+            'e83d404f629d171fbe94d7cdbe52ffc47c442a3474c004e4b82cb92abe287655'
+            '1d102c09ca04773d6452c222708f84507cad0860172deb5466543e4eaff25b5e')
 
 install=$pkgname.install
 
-package() {
+pkgver() {
+  cd "$srcdir/${pkgname}"
+  printf "%s" "$(git describe --long | sed 's/\([^-]*-\)g/r\1/;s/-/./g')"
+}
+
+build() {
+  cd "$srcdir/${pkgname}"
   export GOPATH="$srcdir/build:/usr/share/gocode"
+  export GOPROXY=https://goproxy.cn
+  go mod edit -replace=golang.org/x/sys=github.com/golang/sys@v0.0.0-20220622161953-175b2fd9d664
+  go mod edit -replace=golang.org/x/net=github.com/golang/net@v0.0.0-20220622184535-263ec571b305
+  go mod tidy
+  go build
+}
 
-  go install -v github.com/cyfdecyf/cow@0.9.8
-
+package() {
+  cd "$srcdir/${pkgname}"
   mkdir -p $pkgdir/usr/bin
-  install -m755 $srcdir/build/bin/cow $pkgdir/usr/bin/cow
-  install -Dm644 cow@.service ${pkgdir}/usr/lib/systemd/system/cow@.service
-  install -Dm644 cow_user.service ${pkgdir}/usr/lib/systemd/user/cow.service
+
+  install -m755 cow $pkgdir/usr/bin/cow
+  install -Dm644 $srcdir/cow@.service ${pkgdir}/usr/lib/systemd/system/cow@.service
+  install -Dm644 $srcdir/cow_user.service ${pkgdir}/usr/lib/systemd/user/cow.service
 }
