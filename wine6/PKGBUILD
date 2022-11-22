@@ -1,12 +1,12 @@
 pkgname=wine6
 pkgver=6.0.1
-pkgrel=1
+pkgrel=2
 pkgdesc="Wine's built-in replacement for Microsoft's .NET Framework"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
-conflicts=('wine')
-provides=('wine')
+#conflicts=('wine')
+#provides=('wine')
 depends=('lat' 'lat-runtime-i386')
 optdepends=('lat-runtime-x86_64')
 source=(https://pkg.loongnix.cn/loongnix/pool/main/w/wine/wine_${pkgver}-7-g0216b230c459.lnd.2_loongarch64.deb)
@@ -22,11 +22,11 @@ package() {
       cp -r opt/wine-6.0/$i ${pkgdir}/opt/wine-6.0
   done
 
-  for i in msidb msiexec notepad regedit regsvr32 \
-           widl wine wineboot winebuild winecfg \
-           wineconsole winecpp winedbg winedump winefile \
-           wine winegcc winemaker winemine winepath win \
-           wineserver wmc wrc; do
-    ln -sf /opt/wine-6.0/bin/$i ${pkgdir}/usr/bin/$i
-  done
+#  for i in msidb msiexec notepad regedit regsvr32 \
+#           widl wine wineboot winebuild winecfg \
+#           wineconsole winecpp winedbg winedump winefile \
+#           wine winegcc winemaker winemine winepath win \
+#           wineserver wmc wrc; do
+#    ln -sf /opt/wine-6.0/bin/$i ${pkgdir}/usr/bin/$i
+#  done
 }
