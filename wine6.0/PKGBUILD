@@ -1,12 +1,10 @@
 pkgname=wine6.0
 pkgver=6.0.1
 pkgrel=2
-pkgdesc="Wine's built-in replacement for Microsoft's .NET Framework"
+pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
-#conflicts=('wine')
-#provides=('wine')
 depends=('lat' 'lat-runtime-i386')
 optdepends=('lat-runtime-x86_64')
 source=(https://pkg.loongnix.cn/loongnix/pool/main/w/wine/wine_${pkgver}-7-g0216b230c459.lnd.2_loongarch64.deb)
