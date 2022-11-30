@@ -8,10 +8,9 @@ url="http://loongnix.cn"
 license=('BSD')
 groups=('lat')
 depends=('procps-ng')
-optdepends=(lat-runtime-i386 lat-runtime-x86_64)
+optdepends=(lat-runtime)
 provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
-install=lat.install
 OPTIONS=(strip)
 source=(lat-${pkgver}-${pkgdate}.tar.xz)
 sha256sums=('f3388fcd789a576cf044a4f175938626ec3774936bb293eefe502cfbc2490fa0')
@@ -22,5 +21,5 @@ package() {
   cp -r * ${pkgdir}
 
   echo "vm.mmap_min_addr = 65536" > mmap_min_addr.conf
-  install -Dm644 mmap_min_addr.conf ${pkgdir}/etc/sysctl.d/mmap_min_addr.conf
+  install -Dm644 mmap_min_addr.conf ${pkgdir}/usr/lib/sysctl.d/mmap_min_addr.conf
 }

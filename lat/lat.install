@@ -1,7 +1,0 @@
-post_install() {
-    /usr/bin/sysctl -p
-}
-
-post_remove() {
-    /usr/bin/sysctl -p
-}
