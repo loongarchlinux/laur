@@ -1,12 +1,11 @@
 pkgname=wine
 pkgver=7.20
-pkgrel=1
+pkgrel=2
 pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
-depends=('lat' 'lat-runtime-i386')
-optdepends=('lat-runtime-x86_64')
+depends=('lat-runtime')
 source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/86722f0ca61a9e197505615306d1a8ef/wine-$pkgver.tar.xz)
 sha256sums=('dfb928795c68326f76234e6793e2c9c3f7c0bd5e0420643e74e36e40c3bab507')
 options=(!strip)

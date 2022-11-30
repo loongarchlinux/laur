@@ -1,12 +1,12 @@
 pkgname=wine7.8
 pkgver=7.8
-pkgrel=1
+pkgrel=2
 pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
-depends=('lat' 'lat-runtime-i386')
-optdepends=('lat-runtime-x86_64')
+depends=('lat-runtime')
+provides=('wine-7.8')
 source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/f194dce3326ffb56a68acbda5fc4ec59/wine-$pkgver.tar.xz)
 sha256sums=('44da721b4d9b4b92254f9a5abb4d15b1965db25eb4c7f8726b5ee0af1a1484e3')
 options=(!strip)
@@ -17,12 +17,4 @@ package() {
   for i in bin include lib share; do
       cp -r wine-${pkgver}/$i ${pkgdir}/opt/wine-${pkgver}
   done
-
-#  for i in msidb msiexec notepad regedit regsvr32 \
-#           widl wine wineboot winebuild winecfg \
-#           wineconsole winecpp winedbg winedump winefile \
-#           wineg++ winegcc winemaker winemine winepath \
-#           wine-preloader wineserver wmc wrc; do
-#    ln -sf /opt/wine-${pkgver}/bin/$i ${pkgdir}/usr/bin/$i
-#  done
 }
