@@ -4,13 +4,13 @@ pkgver=1.3.0
 _base_version=1.2.0
 _base_pkgdate=20220316
 _extra_pkgdate=20220722
-pkgrel=1
+pkgrel=2
 pkgdesc="lat runtime libraries for i386"
 arch=('x86_64' 'loong64')
 url="http://loongnix.cn"
 license=('BSD')
 depends=('gcc-libs' 'lat')
-groups=('lat')
+provides=('lat-runtime')
 source=(x86-runtime-base.deb::https://pkg.loongnix.cn/loongnix/pool/main/i/i386-runtime-base/i386-runtime-base_${_base_version}~${_base_pkgdate}.lnd.1_loongarch64.deb
         x86-runtime-extra.deb::https://pkg.loongnix.cn/loongnix/pool/main/i/i386-runtime-extra/i386-runtime-extra_${pkgver}~${_extra_pkgdate}.lnd.1_loongarch64.deb)
 noextract=(x86-runtime-base.deb x86-runtime-extra.deb)
