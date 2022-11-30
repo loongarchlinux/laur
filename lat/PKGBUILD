@@ -1,7 +1,7 @@
 pkgname=lat
 pkgver=1.3.1
-pkgrel=2
-pkgdate=20221118
+pkgrel=3
+pkgdate=20221130
 pkgdesc="Loongson Binary Translator"
 arch=('loong64')
 url="http://loongnix.cn"
@@ -13,7 +13,7 @@ provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 OPTIONS=(strip)
 source=(lat-${pkgver}-${pkgdate}.tar.xz)
-sha256sums=('f3388fcd789a576cf044a4f175938626ec3774936bb293eefe502cfbc2490fa0')
+sha256sums=('ec396c626dc365df311b8709ad12b5f387c4a8535636d91350e5d2f06f6aa8b7')
 
 package() {
   cd $pkgname-$pkgver
