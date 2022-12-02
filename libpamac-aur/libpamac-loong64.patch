@@ -1,0 +1,31 @@
+Index: libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/transaction.vala
+===================================================================
+--- libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df.orig/src/transaction.vala
++++ libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/transaction.vala
+@@ -601,6 +601,9 @@ namespace Pamac {
+ 				}
+ 				emit_action (dgettext (null, "Checking %s dependencies").printf (pkgname) + "...");
+ 				string arch = Posix.utsname ().machine;
++				if (arch == "loongarch64") {
++					arch = "loong64";
++				}
+ 				if (clone_dir.query_exists ()) {
+ 					// use .SRCINFO
+ 					var srcinfo = clone_dir.get_child (".SRCINFO");
+Index: libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/alpm_config.vala
+===================================================================
+--- libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df.orig/src/alpm_config.vala
++++ libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/alpm_config.vala
+@@ -292,7 +289,11 @@ internal class AlpmConfig {
+ 						} else if (key == "Architecture") {
+ 							foreach (unowned string arch in val.split (" ")) {
+ 								if (arch == "auto") {
+-									architectures.add (Posix.utsname ().machine);
++									string sys_arch = Posix.utsname().machine;
++									if (sys_arch == "loongarch64") {
++										sys_arch = "loong64";
++									}
++									architectures.add (sys_arch);
+ 								} else {
+ 									architectures.add (arch);
+ 								}
