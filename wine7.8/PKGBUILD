@@ -1,12 +1,12 @@
 pkgname=wine7.8
 pkgver=7.8
-pkgrel=2
+pkgrel=3
 pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
 depends=('lat-runtime')
-provides=('wine-7.8')
+provides=('wine' 'wine-7.8')
 source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/f194dce3326ffb56a68acbda5fc4ec59/wine-$pkgver.tar.xz)
 sha256sums=('44da721b4d9b4b92254f9a5abb4d15b1965db25eb4c7f8726b5ee0af1a1484e3')
 options=(!strip)
