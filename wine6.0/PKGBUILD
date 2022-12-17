@@ -1,12 +1,12 @@
 pkgname=wine6.0
 pkgver=6.0.1
-pkgrel=3
+pkgrel=4
 pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
 depends=('lat-runtime')
-provides=('wine-6.0')
+provides=('wine' 'wine-6.0')
 source=(https://pkg.loongnix.cn/loongnix/pool/main/w/wine/wine_${pkgver}-7-g0216b230c459.lnd.2_loongarch64.deb)
 sha256sums=('ca7011e5620c427a365248648da6bfc5a04e9d329d363f2ddbaab03091ed69a1')
 options=(!strip)
