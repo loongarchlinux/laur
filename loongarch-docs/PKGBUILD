@@ -1,0 +1,25 @@
+pkgname=loongarch-docs
+pkgver=20221224
+pkgrel=1
+pkgdesc="LoongArch Development Documents"
+arch=('any')
+url="https://github.com/loongson"
+license=('custom')
+OPTIONS=(!strip)
+source=(build.sh loongarch.devhelp2)
+sha256sums=('0f9426b01830aca26ad00457e6eef19e91384decdf095572229b686b6d13d19d'
+            '72ba86f05d5b14cb37abc8ea1b718b0cf5f01d1cf5e0a3eeb2221958bf935ac5')
+
+build() {
+  $srcdir/build.sh
+}
+
+package() {
+  mkdir -p ${pkgdir}/usr/share/devhelp/books/loongarch
+
+  for i in *.css *.devhelp2 *.html; do
+    if [ -f $srcdir/$i ]; then
+      install -Dm644 $srcdir/$i ${pkgdir}/usr/share/devhelp/books/loongarch/$i
+    fi
+  done
+}

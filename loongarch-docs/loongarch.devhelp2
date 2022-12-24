@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<book xmlns="http://www.devhelp.net/book" title="龙芯架构文档" language="other" name="loongarch" version="0.1" author="" link="index.html">
+	<chapters>
+		<sub name="龙芯架构工具链约定" link="LoongArch-toolchain-conventions-CN.html">
+			<sub name="编译器命令行选项" link="LoongArch-toolchain-conventions-CN.html#_编译器命令行选项">
+				<sub name="概述" link="LoongArch-toolchain-conventions-CN.html#_概述"></sub>
+				<sub name="目标指令集架构 (ISA) 的构成" link="LoongArch-toolchain-conventions-CN.html#_目标指令集架构_isa_的构成"></sub>
+				<sub name="应用二进制接口 (ABI) 的构成" link="LoongArch-toolchain-conventions-CN.html#abi-types"></sub>
+			</sub>
+			<sub name="GNU 目标三元组和 Multiarch 架构标识符" link="LoongArch-toolchain-conventions-CN.html#_gnu_目标三元组和_multiarch_架构标识符"></sub>
+			<sub name="C/C++ 预处理器内建宏定义" link="LoongArch-toolchain-conventions-CN.html#_cc_预处理器内建宏定义"></sub>
+		</sub>
+		<sub name="龙芯架构ELF psABI 规范" link="LoongArch-ELF-ABI-CN.html">
+			<sub name="寄存器使用约定" link="LoongArch-ELF-ABI-CN.html#_寄存器使用约定">
+				<sub name="返回值寄存器的别名写法" link="LoongArch-ELF-ABI-CN.html#_返回值寄存器的别名写法"></sub>
+			</sub>
+			<sub name="C 语言数据类型规格" link="LoongArch-ELF-ABI-CN.html#c-lang-data-model"></sub>
+			<sub name="ELF 目标文件" link="LoongArch-ELF-ABI-CN.html#_elf_目标文件">
+				<sub name="EI_CLASS: ELF 文件格式" link="LoongArch-ELF-ABI-CN.html#_ei_class_elf_文件格式"></sub>
+				<sub name="e_machine: 体系结构 ID" link="LoongArch-ELF-ABI-CN.html#_e_machine_体系结构_id"></sub>
+				<sub name="e_flags: ABI 类型和版本 ID" link="LoongArch-ELF-ABI-CN.html#_e_flags_abi_类型和版本_id"></sub>
+			</sub>
+			<sub name="重定位类型" link="LoongArch-ELF-ABI-CN.html#_重定位类型"></sub>
+			<sub name="动态链接器路径" link="LoongArch-ELF-ABI-CN.html#_动态链接器路径"></sub>
+			<sub name="附录：版本修订历史" link="LoongArch-ELF-ABI-CN.html#_附录版本修订历史"></sub>
+		</sub>
+	</chapters>
+</book>
