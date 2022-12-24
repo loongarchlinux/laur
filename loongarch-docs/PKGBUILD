@@ -6,6 +6,7 @@ arch=('any')
 url="https://github.com/loongson"
 license=('custom')
 OPTIONS=(!strip)
+makedepends=(wget)
 source=(build.sh loongarch.devhelp2)
 sha256sums=('0f9426b01830aca26ad00457e6eef19e91384decdf095572229b686b6d13d19d'
             '72ba86f05d5b14cb37abc8ea1b718b0cf5f01d1cf5e0a3eeb2221958bf935ac5')
