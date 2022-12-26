@@ -5,21 +5,22 @@ ENABLE_FLATPAK=0
 ENABLE_SNAPD=0
 
 pkgname=libpamac-aur
-pkgver=11.3.1
+pkgver=11.4.1
 pkgrel=1
 _pkgfixver=$pkgver
 
-_commit='9b64211cc08d8ec27df98c157261b8b9c04d11df'
-sha256sums=('9fccd36b994305d4fb02c9950127b795c6d244454d720a972bf48fd85e21394b'
+_commit='29d71809ee4171585d58a2f652a2eaa05e3dbfb0'
+sha256sums=('b7f69c45f89fc587241b0237dab00cb19314904a4dc7025523aebd28ea59d3d2'
             '6e0c25f0fcb0076ce78845b037e32925fcc3f1cd1670062c48ed35f564a10244'
             'c2b943318a01ba1f3dabbf32e48e6a6f4b4b774e167ab86c6bfee31aa4a3424c'
-            '5de77019349006648361435f75ba52b9624b22a35ddb2d62b83e80cd5e08e7a9')
+            '5de77019349006648361435f75ba52b9624b22a35ddb2d62b83e80cd5e08e7a9'
+            '1e24f02c6d9b99a2cdb5587344a52f554dba2be269142b1694e8ca04540c3bf8')
 
 pkgdesc="Pamac package manager library based on libalpm"
 arch=('i686' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64' 'loong64')
 url="https://gitlab.manjaro.org/applications/libpamac"
 license=('GPL3')
-depends=('glib2>=2.42' 'json-glib' 'libsoup' 'dbus-glib' 'polkit' 'vte3>=0.38' 
+depends=('glib2>=2.42' 'json-glib' 'libsoup3' 'dbus-glib' 'polkit' 'vte3>=0.38' 
          'libnotify' 'pacman>=6.0' 'pacman<6.1' 'gnutls>=3.4' 'git'
          'appstream-glib>=0.7.18-1' 'archlinux-appstream-data' 'git')
 
@@ -31,7 +32,8 @@ options=(!emptydirs !strip)
 install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
-        libpamac-loong64.patch)
+        libpamac-loong64.patch
+        "http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/d9bb9e4ed59e274d07a3682a8877dacd/libpamac-wine-apps.patch")
 
 define_meson=''
 if [ "${ENABLE_FLATPAK}" = 1 ]; then
@@ -49,6 +51,7 @@ prepare() {
   # adjust version string
   sed -i -e "s|\"$_pkgfixver\"|\"$pkgver-$pkgrel\"|g" src/version.vala
   patch -p1 -i $srcdir/libpamac-loong64.patch
+  patch -p1 -i $srcdir/libpamac-wine-apps.patch
 }
 
 build() {
