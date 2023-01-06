@@ -6,7 +6,7 @@ ENABLE_SNAPD=0
 
 pkgname=libpamac-aur
 pkgver=11.4.1
-pkgrel=1
+pkgrel=2
 _pkgfixver=$pkgver
 
 _commit='29d71809ee4171585d58a2f652a2eaa05e3dbfb0'
@@ -14,7 +14,7 @@ sha256sums=('b7f69c45f89fc587241b0237dab00cb19314904a4dc7025523aebd28ea59d3d2'
             '6e0c25f0fcb0076ce78845b037e32925fcc3f1cd1670062c48ed35f564a10244'
             'c2b943318a01ba1f3dabbf32e48e6a6f4b4b774e167ab86c6bfee31aa4a3424c'
             '5de77019349006648361435f75ba52b9624b22a35ddb2d62b83e80cd5e08e7a9'
-            '1e24f02c6d9b99a2cdb5587344a52f554dba2be269142b1694e8ca04540c3bf8')
+            'c83becba561cbb7e6232b7b6b02f866eec3cea8b2c761e508b70bd6189aad101')
 
 pkgdesc="Pamac package manager library based on libalpm"
 arch=('i686' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64' 'loong64')
@@ -33,7 +33,7 @@ install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
         libpamac-loong64.patch
-        "http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/d9bb9e4ed59e274d07a3682a8877dacd/libpamac-wine-apps.patch")
+        "http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch")
 
 define_meson=''
 if [ "${ENABLE_FLATPAK}" = 1 ]; then
