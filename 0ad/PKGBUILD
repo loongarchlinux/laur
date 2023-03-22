@@ -1,0 +1,28 @@
+# Maintainer: Sven-Hendrik Haase <svenstaro@archlinux.org>
+# Contributor: t3ddy  <t3ddy1988 "at" gmail {dot} com>
+# Contributor: Adrián Chaves Fernández (Gallaecio) <adriyetichaves@gmail.com>
+pkgname=0ad-bin
+_pkgname=0ad
+pkgver=a26
+_pkgver=0.0.26-alpha
+pkgrel=4
+pkgdesc="Cross-platform, 3D and historically-based real-time strategy game"
+arch=('loong64' 'x86_64')
+url="http://play0ad.com/"
+license=('GPL2' 'CCPL')
+depends=('0ad-data' 'binutils' 'boost-libs' 'curl' 'enet' 'libogg' 'libpng' 'libvorbis'
+         'libxml2' 'openal' 'sdl2' 'wxwidgets-gtk3' 'zlib' 'libgl' 'glu' 'fmt'
+         'gloox' 'miniupnpc' 'libminiupnpc.so' 'icu' 'nspr' 'libsodium' 'which')
+provides=("0ad=$pkgver")
+conflicts=('0ad')
+source=("http://public.loongarch.dev/sources/0ad/0ad-a26.tar.zst/30c6f7000667534c4227c5e42bc61243/0ad-$pkgver.tar.zst")
+sha512sums=('721efa9e335a0909ea16ef20840b0d1dcfc1c61d858c7848d5e5a101dca08a950c22d4e8c728e69ef2019354a7cf7458bbbe377a7c3b26a2481c37b8e6fb86af')
+
+package() {
+  cd "$_pkgname-$pkgver"
+  install -d "${pkgdir}"/usr/{bin,lib/0ad,share/"${_pkgname}"/data}
+  install -Dm755 usr/bin/{0ad,pyrogenesis} "${pkgdir}/usr/bin"
+  install -Dm755 usr/lib/0ad/*.so "${pkgdir}/usr/lib/0ad"
+
+  cp -r usr/share/* "${pkgdir}/usr/share/"
+}
