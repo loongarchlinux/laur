@@ -1,0 +1,62 @@
+# Maintainer: Alad Wenter <alad@archlinux.org>
+# Contributor: Luna Jernberg <droidbittin@gmail.com>
+# Contributor: Hilton Medeiros <medeiros.hilton@gmail.com>
+# Contributor: Simon Brulhart <simon@brulhart.me>
+# Contributor: Det <nimetonmaili g-mail>, Achilleas Pipinellis, speed145a, Schnouki, aus
+
+pkgname=thunderbird-bin
+_pkgname=thunderbird
+pkgver=102.4
+pkgrel=1
+pkgdesc='Standalone mail and news reader from mozilla.org'
+url='https://www.mozilla.org/thunderbird/'
+arch=(loong64 x86_64)
+license=(MPL GPL LGPL)
+depends=(
+  glibc gtk3 libgdk-3.so libgtk-3.so mime-types dbus libdbus-1.so dbus-glib
+  alsa-lib nss hunspell sqlite ttf-font libvpx libvpx.so zlib bzip2
+  botan libwebp libwebp.so libwebpdemux.so libevent libjpeg-turbo libffi
+  libffi.so nspr gcc-libs libx11 libxrender libxfixes libxext libxcomposite
+  libxdamage pango libpango-1.0.so cairo gdk-pixbuf2 icu
+  freetype2 libfreetype.so fontconfig libfontconfig.so glib2
+  libglib-2.0.so pixman libpixman-1.so gnupg json-c
+)
+optdepends=(
+  'libotr: OTR support for active one-to-one chats'
+  'libnotify: Notification integration'
+)
+provides=("thunderbird=$pkgver")
+conflicts=('thunderbird')
+source=("http://public.loongarch.dev/sources/thunderbird/thunderbird-$pkgver.tar.zst/28633c6e48a2f7fdcad1f87af7710a18/thunderbird-$pkgver.tar.zst"
+        $_pkgname.sh
+        $_pkgname.desktop)
+sha256sums=('30da004c7ec10e2277c72980a8f5b17b6053f01af1683494eee22f1aab64f5c9'
+            '71e1d9186c9d61c97ce8489d4eca5adef6d06c4fa7668f4e163c4db33dd7f7c1'
+            '193c96a49ec2548dfe07afa68e1847502008d3447890d091d79d0b1560c4300f')
+
+package() {
+  # Create directories
+  mkdir -p "$pkgdir"/usr/bin
+  mkdir -p "$pkgdir"/usr/share/applications
+  mkdir -p "$pkgdir"/opt
+
+  # Install
+  cp -r thunderbird-$pkgver/ "$pkgdir"/opt/$pkgname
+
+  # Launchers
+  install -m755 $_pkgname.sh "$pkgdir"/usr/bin/$_pkgname
+
+  # Desktops
+  install -m644 *.desktop "$pkgdir"/usr/share/applications/
+
+  # Icons
+  for i in 16x16 32x32 48x48 64x64 128x128; do
+    install -d "$pkgdir"/usr/share/icons/hicolor/$i/apps/
+    ln -s /opt/$pkgname/chrome/icons/default/default${i/x*}.png \
+          "$pkgdir"/usr/share/icons/hicolor/$i/apps/$_pkgname.png
+  done
+
+  # Use system-provided dictionaries
+  ln -Ts /usr/share/hunspell "$pkgdir"/opt/$pkgname/dictionaries
+  ln -Ts /usr/share/hyphen "$pkgdir"/opt/$pkgname/hyphenation
+}
