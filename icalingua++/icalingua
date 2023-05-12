@@ -1,0 +1,2 @@
+#!/bin/sh
+exec electron17 /usr/lib/icalingua/icalingua.asar "$@"
