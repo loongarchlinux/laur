@@ -7,7 +7,7 @@
 pkgname=firefox-bin
 _pkgname=firefox
 pkgver=100.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Standalone web browser from mozilla.org - Static binaries from upstream"
 arch=('loong64' 'x86_64')
 url="https://www.mozilla.org/en-US/firefox/new/"
@@ -21,10 +21,10 @@ optdepends=('ffmpeg: H264/AAC/MP3 decoding'
             'hunspell-en_US: Spell checking, American English')
 provides=("firefox=$pkgver")
 conflicts=('firefox')
-source=("http://public.loongarch.dev/sources/firefox/firefox-$pkgver.tar.zst/2fed3ac5d6fcd8c2872c4b69d9ece6d0/firefox-$pkgver.tar.zst"
+source=("http://public.loongarch.dev/sources/firefox/firefox-$pkgver.tar.zst/d2ccfe6f32eb977a82c5238035a1552a/firefox-$pkgver.tar.zst"
         $_pkgname.sh
         $_pkgname.desktop)
-sha256sums=('fd245600085c193ce9054035ee85e5834e38ac51c428173d463d8617043d10a5'
+sha256sums=('1313e90b81d2f7ef8c931c119aa83dd855d906eadef6cd7801150a9d871be398'
             'ed4689c68b5030f271ce5509aabc63df24a8c324b6908134449cdc6a48e4bd21'
             'c64008cbf01956ce3dba693230670de58fa9487ad19f4ba76614af13beb1b8ef')
 
