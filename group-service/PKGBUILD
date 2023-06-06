@@ -1,0 +1,29 @@
+# Maintainer: Xiaotian Wu <wuxiaotian@loongson.cn>
+
+pkgname=group-service
+pkgver=1.4.0
+pkgrel=1
+pkgdesc="A log viewer for the systemd journal"
+url="https://wiki.gnome.org/Apps/Logs"
+arch=(loong64 x86_64)
+license=(GPL)
+depends=(gtk3)
+makedepends=(meson polkit)
+groups=(mate-extra)
+options=(debug)
+source=("$pkgname-$pkgver.tar.gz::https://github.com/zhuyaliang/$pkgname/archive/refs/tags/$pkgver.tar.gz")
+sha256sums=('92bd496e8fcc2e891fa2e871b35575198af72838717bc07221678461ea92b469')
+
+build() {
+  arch-meson $pkgname-$pkgver build
+}
+
+check() {
+  meson test -C build --print-errorlogs
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}
+
+# vim:set sw=2 sts=-1 et:
