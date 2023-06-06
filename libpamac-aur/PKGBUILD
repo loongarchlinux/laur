@@ -33,7 +33,7 @@ install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
         libpamac-loong64.patch
-        "http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch")
+        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch")
 
 define_meson=''
 if [ "${ENABLE_FLATPAK}" = 1 ]; then
