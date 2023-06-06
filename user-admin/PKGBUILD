@@ -1,0 +1,32 @@
+# Maintainer: Xiaotian Wu <wuxiaotian@loongson.cn>
+
+pkgname=user-admin
+pkgver=1.7.0
+pkgrel=1
+pkgdesc="A log viewer for the systemd journal"
+url="https://wiki.gnome.org/Apps/Logs"
+arch=(loong64 x86_64)
+license=(GPL)
+depends=(gtk3 libpwquality accountsservice group-service mate-desktop)
+makedepends=(meson)
+groups=(mate-extra)
+options=(debug)
+_commit=4eb966b2cd9dd0f42a1fb9086eecbbc95b79a8b0
+source=("git+https://github.com/zhuyaliang/$pkgname.git#commit=$_commit")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/zhuyaliang/$pkgname/archive/refs/tags/$pkgver.tar.gz")
+
+build() {
+  arch-meson $pkgname-$pkgver build
+  meson compile -C build
+}
+
+check() {
+  meson test -C build --print-errorlogs
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}
+
+# vim:set sw=2 sts=-1 et:
+sha256sums=('b4eb0783b382ed9405c76b765148d105dd113e20f66e61ad63d6fb7de7cafe1d')
