@@ -2,7 +2,7 @@
 
 pkgname=qt-solutions-git
 pkgver=56.777e95b
-pkgrel=1
+pkgrel=2
 pkgdesc="Components from the discontinued Qt Solutions product, a collection of minor Qt add-ons and former Qt modules which for various reasons have been pruned from Qt itself. (GIT version)"
 arch=('x86_64' 'loong64')
 url='https://github.com/qtproject/qt-solutions'
