@@ -3,7 +3,7 @@
 _pkgname=electron17
 pkgname=electron17-bin
 pkgver=17.4.7
-pkgrel=1
+pkgrel=2
 pkgdesc='Build cross platform desktop apps with web technologies'
 arch=('x86_64' 'loong64')
 url='https://electronjs.org/'
@@ -47,6 +47,9 @@ package() {
     ln "${pkgdir}/usr/bin/${_pkgname}" \
       "${pkgdir}/usr/bin/${_pkgname}${_major_ver}"
   fi
+
+# create link to electron
+  ln -s "/usr/bin/${_pkgname}${_major_ver}" "${pkgdir}/usr/bin/electron"
 
   # Install .desktop and icon file (see default_app-icon.patch)
   install -Dm644 electron.desktop \
