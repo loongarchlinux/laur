@@ -1,45 +1,41 @@
 pkgname=icalingua++
 _pkgname=icalingua
-pkgver=2.9.12
+pkgver=2.9.21
 pkgrel=1
 pkgdesc='A branch of deleted Icalingua, with limited support'
 license=('AGPL3')
 depends=('ffmpeg' 'electron17' 'libappindicator-gtk3')
 optdepends=('mongodb-bin: Provides storage'
             'redis: Provides storage')
-makedepends=('asar')
 arch=('aarch64' 'x86_64' 'loong64')
 url="https://github.com/Icalingua-plus-plus/Icalingua-plus-plus"
 provides=('electron-qq' 'icalingua')
 conflicts=('electron-qq')
 replaces=('electron-qq' "icalingua-plus-plus")
 source=(${_pkgname}.desktop
-        ${_pkgname})
-source_x86_64=("app-x86_64-${pkgver}.asar::${url}/releases/download/v${pkgver//_/-}/app-x86_64.asar")
-source_aarch64=("app-aarch64-${pkgver}.asar::${url}/releases/download/v${pkgver//_/-}/app-arm64.asar")
-source_loong64=("app-loong64-${pkgver}.asar::${url}/releases/download/v${pkgver//_/-}/app-x86_64.asar"
-    http://public.loongarch.dev/sources/icalingua/node_sqlite3.node/2483a74d428c52057974ccb7acd91804/node_sqlite3.node
-    )
-prepare(){
-    cd ${srcdir}
-    asar ef app-${CARCH}-${pkgver}.asar dist/electron/static/icons/512x512.png
+        ${_pkgname}
+	http://public.loongarch.dev/sources/icalingua/app-2.9.21.asar/c7dc4490be7cb10cc96d85f7a192b43e/app-2.9.21.asar
+	https://github.com/Icalingua-plus-plus/Icalingua-plus-plus/raw/develop/pkgres/512x512.png
+)
+#prepare(){
+#    cd ${srcdir}
+#    asar ef app-${CARCH}-${pkgver}.asar dist/electron/static/icons/512x512.png
+#
+#    asar e app-${CARCH}-${pkgver}.asar dist
+#    rm -rf dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-x64/
+#    mkdir dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-loong64
+#    cp $srcdir/node_sqlite3.node dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-loong64/
+#    asar pack dist app-${CARCH}-${pkgver}.asar
+#}
 
-    asar e app-${CARCH}-${pkgver}.asar dist
-    rm -rf dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-x64/
-    mkdir dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-loong64
-    cp $srcdir/node_sqlite3.node dist/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-loong64/
-    asar pack dist app-${CARCH}-${pkgver}.asar
-}
 package() {
-    install -Dm644 -t "${pkgdir}/usr/share/applications" "${_pkgname}.desktop"
-    install -Dm644 "512x512.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/$_pkgname.png"
-    install -Dm644 "app-${CARCH}-${pkgver}.asar" "${pkgdir}/usr/lib/${_pkgname}/${_pkgname}.asar"
-    install -Dm755 "${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
+    install -Dm644 -t "${pkgdir}/usr/share/applications" "${srcdir}/${_pkgname}.desktop"
+    install -Dm644 "${srcdir}/512x512.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/$_pkgname.png"
+    install -Dm644 "${srcdir}/app-${pkgver}.asar" "${pkgdir}/usr/lib/${_pkgname}/${_pkgname}.asar"
+    install -Dm755 "${srcdir}/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
     ln -s "/usr/bin/${_pkgname}" "${pkgdir}/usr/bin/electron-qq"
 }
 sha256sums=('43da1c99b7a6aee974c20da3bcf925b660dff4ba44a447c86066c84c8bc95fbd'
-    '372b2de9d9bbf012f50f1f72fa67f44bc994e7a2c5350d5002259eb28a6257e6')
-sha256sums_aarch64=('4e73a3a7987a8edab49fc1dabe7d8a12d7b7df2ada6c584219917ba4efae0e7c')
-sha256sums_x86_64=('5241e9e042e769a6af16bc693a2aaab6dad883df7186f375c877b080beaf1dff')
-sha256sums_loong64=('5241e9e042e769a6af16bc693a2aaab6dad883df7186f375c877b080beaf1dff'
-    '02ffd29d573f512d87e1d81f54986f8d8bda78a66c7e3d66f82ca1868d5b255e')
+            '372b2de9d9bbf012f50f1f72fa67f44bc994e7a2c5350d5002259eb28a6257e6'
+            '4570dd1ce79def498d58a8681f3c5a8ae828448f416dfd5c931313c00c34bfde'
+            '5743ef3d19be5e41e83c3a1171a807cd0505d7f5d5f9c5abdff8926dccadc6de')
