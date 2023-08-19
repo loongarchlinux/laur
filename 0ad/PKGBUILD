@@ -22,7 +22,7 @@ package() {
   cd "$_pkgname-$pkgver"
   install -d "${pkgdir}"/usr/{bin,lib/0ad,share/"${_pkgname}"/data}
   install -Dm755 usr/bin/{0ad,pyrogenesis} "${pkgdir}/usr/bin"
-  install -Dm755 usr/lib/0ad/*.so "${pkgdir}/usr/lib/0ad"
+  install -Dm755 usr/lib/0ad/* "${pkgdir}/usr/lib/0ad"
 
   cp -r usr/share/* "${pkgdir}/usr/share/"
 }
