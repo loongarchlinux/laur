@@ -5,7 +5,8 @@ pkgname=0ad-bin
 _pkgname=0ad
 pkgver=a26
 _pkgver=0.0.26-alpha
-pkgrel=6
+_pkgdate=20230830
+pkgrel=7
 pkgdesc="Cross-platform, 3D and historically-based real-time strategy game"
 arch=('loong64' 'x86_64')
 url="http://play0ad.com/"
@@ -15,8 +16,8 @@ depends=('0ad-data' 'binutils' 'boost-libs' 'curl' 'enet' 'libogg' 'libpng' 'lib
          'gloox' 'miniupnpc' 'libminiupnpc.so' 'icu' 'nspr' 'libsodium' 'which')
 provides=("0ad=$pkgver")
 conflicts=('0ad')
-source=("http://public.loongarch.dev/sources/0ad/0ad-a26.tar.zst/30c6f7000667534c4227c5e42bc61243/0ad-$pkgver.tar.zst")
-sha512sums=('721efa9e335a0909ea16ef20840b0d1dcfc1c61d858c7848d5e5a101dca08a950c22d4e8c728e69ef2019354a7cf7458bbbe377a7c3b26a2481c37b8e6fb86af')
+source=("http://public.loongarch.dev/sources/0ad/0ad-a26.tar.zst/30c6f7000667534c4227c5e42bc61243/0ad-$pkgver-$_pkgdate.tar.zst")
+sha512sums=('2602aa335aa550f07d2f418b7543a8d3b02a2a8abe4913eeb039c178ff4528548427681b5a836fa1e36d48eaf4b3a97478d7e620a2c7a0e01591db56af34592e')
 
 package() {
   cd "$_pkgname-$pkgver"
