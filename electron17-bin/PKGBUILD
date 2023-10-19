@@ -3,7 +3,7 @@
 _pkgname=electron17
 pkgname=electron17-bin
 pkgver=17.4.7
-pkgrel=2
+pkgrel=3
 pkgdesc='Build cross platform desktop apps with web technologies'
 arch=('x86_64' 'loong64')
 url='https://electronjs.org/'
@@ -15,8 +15,8 @@ optdepends=('kde-cli-tools: file deletion support (kioclient5)'
             'pipewire: WebRTC desktop sharing under Wayland'
             'trash-cli: file deletion support (trash-put)'
             "xdg-utils: open URLs with desktop's default (xdg-email, xdg-open)")
-conflicts=("electron17")
-provides=("electron17" "electron")
+conflicts=("$_pkgname")
+provides=("$_pkgname")
 source=("http://public.loongarch.dev/sources/electron/electron-v${pkgver}-linux-loong64.zip/151bd8bc43b5b922b0751d61e8c6e8a2/electron-v${pkgver}-linux-loong64.zip"
         "icon.png::http://public.loongarch.dev/sources/electron/electron17.png/5fbf91dbab04c5f2b19e1aca8f87a307/electron17.png"
         "electron-launcher.sh"
@@ -47,9 +47,6 @@ package() {
     ln "${pkgdir}/usr/bin/${_pkgname}" \
       "${pkgdir}/usr/bin/${_pkgname}${_major_ver}"
   fi
-
-# create link to electron
-  ln -s "/usr/bin/${_pkgname}${_major_ver}" "${pkgdir}/usr/bin/electron"
 
   # Install .desktop and icon file (see default_app-icon.patch)
   install -Dm644 electron.desktop \
