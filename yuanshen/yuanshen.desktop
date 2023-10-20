@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=chat;Network;
+Exec=yuanshen %u
+Icon=yuanshen
+Name=yuanshen
+Comment=YuanShen Game
+StartupNotify=true
+Terminal=false
+Type=Application
