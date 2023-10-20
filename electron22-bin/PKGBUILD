@@ -17,13 +17,13 @@ optdepends=('kde-cli-tools: file deletion support (kioclient5)'
             "xdg-utils: open URLs with desktop's default (xdg-email, xdg-open)")
 conflicts=($pkgname)
 provides=($pkgname)
-source=("http://public.loongarch.dev/sources/electron/electron-v${pkgver}-linux-loong64.zip/369c6507fb4d62548fcde4c5a288b391/electron-v${pkgver}-linux-loong64.zip"
+source=("http://public.loongarch.dev/sources/electron/electron-v${pkgver}-linux-loong64.zip/61cb1c08b4319470a74c050dcfb5e600/electron-v${pkgver}-linux-loong64.zip"
         "icon.png::http://public.loongarch.dev/sources/electron/electron17.png/5fbf91dbab04c5f2b19e1aca8f87a307/electron17.png"
         "electron-launcher.sh"
         "electron.desktop"
        )
 noextract=("electron-v${pkgver}-linux-loong64.zip")
-sha256sums=('2cae27d610004d0e8d94b9282398eaa08ea55562fd2a4f3d8e02728a6f5ef396'
+sha256sums=('b96c9d980df8a23e152a7621ee7127de365d5f3f9b55527d2b7c9a859792d475'
             'b0f6f06d7e94053dabcc7dd8adc83d925089dbca55df0ca573b267b710e1f79d'
             'e612317aee7e248ad930251d9d52866eb4bf8118ee0fb0cd9247008e969f543a'
             '3e6725aef3a92a9e0e9e7ecbc02a824faad3b21dada64033c7b5d15b6266aad7')
