@@ -12,10 +12,10 @@ source=(
     ${pkgname}.desktop
     ${pkgname}
 )
-sha256sums=('cff8b045a54841fd38f4da1eb00a27fed531e21a4fc795968af519138c7d2e32'
-            '18f386bd15b7715466db27a8c2812b101d2dfd67bb080196340672f0ab184820'
-            'd25edf92b97c394c321e55934c605d7bcf082db5c034f2cc63204e577f4fa6c8'
-            '78d4bfc577ce1948fbf447d20544e0e3506e2d48faae071079ff3cfafbeb82e2')
+sha256sums=('d25edf92b97c394c321e55934c605d7bcf082db5c034f2cc63204e577f4fa6c8'
+            '78d4bfc577ce1948fbf447d20544e0e3506e2d48faae071079ff3cfafbeb82e2'
+            '72a8d698d4498173a772e62f4bbe37363fce912e9fa78b64e535f8f41126a1b7'
+            '18f386bd15b7715466db27a8c2812b101d2dfd67bb080196340672f0ab184820')
 
 package() {
     install -Dm644 -t "${pkgdir}/usr/share/applications" "${srcdir}/${pkgname}.desktop"

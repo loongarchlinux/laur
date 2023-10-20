@@ -1,9 +1,10 @@
 [Desktop Entry]
-Categories=chat;Network;
-Exec=yuanshen %u
-Icon=yuanshen
 Name=yuanshen
+Name[zh_CN]=原神
+Icon=yuanshen
 Comment=YuanShen Game
+Categories=Game;
 StartupNotify=true
+Exec=yuanshen %u
 Terminal=false
 Type=Application
