@@ -1,0 +1,20 @@
+pkgname=wine7.20
+pkgver=7.20
+pkgrel=3
+pkgdesc="A compatibility layer for running Windows programs"
+arch=('x86_64' 'loong64')
+url="https://wiki.winehq.org/Mono"
+license=('GPL' 'LGPL2.1' 'MPL')
+depends=('lat-runtime')
+optdepends=('wine-mono' 'wine-gecko')
+source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/86722f0ca61a9e197505615306d1a8ef/wine-$pkgver.tar.xz)
+sha256sums=('dfb928795c68326f76234e6793e2c9c3f7c0bd5e0420643e74e36e40c3bab507')
+options=(!strip)
+
+package() {
+  mkdir -p ${pkgdir}/opt/wine-${pkgver}
+  mkdir -p ${pkgdir}/usr/bin
+  for i in bin include lib share; do
+      cp -r wine-${pkgver}/$i ${pkgdir}/opt/wine-${pkgver}
+  done
+}
