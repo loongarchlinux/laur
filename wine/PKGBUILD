@@ -1,5 +1,5 @@
-pkgver=7.20
-pkgrel=3
+pkgver=7.19
+pkgrel=1
 pkgname=wine
 pkgdesc="Meta package, always depends on the latest stable wine"
 arch=('x86_64' 'loong64')
