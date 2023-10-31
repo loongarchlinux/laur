@@ -1,0 +1,211 @@
+#! /bin/bash
+
+######################################################################
+# @author      : Xiaotian Wu (yetist@gmail.com)
+# @file        : wine-change-version
+# @created     : 星期五 10月 27, 2023 14:38:40 CST
+#
+# @description : set the default wine version
+######################################################################
+set -eu
+
+WINE_DIR=/opt
+wine_vers=()
+
+_progs=(
+  function_grep.pl
+  msidb
+  msiexec
+  notepad
+  regedit
+  regsvr32
+  widl
+  wine
+  wine64
+  wine64-preloader
+  wineboot
+  winebuild
+  winecfg
+  wineconsole
+  winecpp
+  winedbg
+  winedump
+  winefile
+  wineg++
+  winegcc
+  winemaker
+  winemine
+  winepath
+  wine-preloader
+  wineserver
+  wmc
+  wrc
+)
+
+
+# Utility functions
+
+check_root() {
+  if [ $(id -u) -ne 0 ]; then
+    echo 'This script must be run as root'
+    exit 1
+  fi
+}
+
+# $1: parameter count given to this script for this option
+# $2: expected parameter count for this option
+check_param_count() {
+  if [ $1 -ne $2 ]; then
+    echo 'Wrong parameter count'
+    exit 2
+  fi
+}
+
+# Second level functions
+
+get_default_wine() {
+  path=$(readlink -e /usr/bin/wine)
+  if [ "x${path}" != "x/dev/null" ]; then
+    path="${path/${WINE_DIR}\/}"
+    echo "${path%/bin/wine}"
+  else
+    echo ""
+  fi
+}
+
+get_installed_wines() {
+  for dir in $(find ${WINE_DIR} -mindepth 1 -maxdepth 1 -type d -name "wine-*" | sort); do
+    if [ -x ${dir}/bin/wine ]; then
+      wines+=(${dir/${WINE_DIR}\/})
+    fi
+  done
+  echo ${wines[@]}
+}
+
+# $1: Wine environment name to test
+is_wine_valid() {
+  if [ "x$1" == "x" ];then
+    return 1
+  else
+    test -x ${WINE_DIR}/$1/bin/wine
+  fi
+}
+
+# $1: Wine environment name to set as default
+set_default_link_to() {
+  new_default=$1
+  for i in ${_progs[@]}; do
+    if [ -L /usr/bin/$i ];then
+      unlink /usr/bin/$i 2>/dev/null
+    fi
+    if [[ -f /opt/${new_default}/bin/$i ]];then
+      ln -sf /opt/${new_default}/bin/$i /usr/bin/$i
+    fi
+  done
+}
+
+unset_default_link() {
+  for i in ${_progs[@]}; do
+    if [ -L /usr/bin/$i ];then
+      unlink /usr/bin/$i 2>/dev/null
+    fi
+  done
+}
+
+# First level functions
+
+do_status() {
+  installed_wine=($(get_installed_wines))
+  if [ ${#installed_wine[@]} -eq 0 ]; then
+    echo 'No compatible Wine environment installed'
+  else
+    default_wine=$(get_default_wine)
+    echo 'Available Wine environments:'
+    for wine in ${installed_wine[@]}; do
+      # We discoverd this Wine env but its JRE is actually set as default
+      if [ ${wine} = "${default_wine}" ]; then
+        echo -e "  ${wine} (default)"
+      else
+        echo "  ${wine}"
+      fi
+    done
+    if [ -z ${default_wine} ]; then
+      echo "No Wine environment set as default"
+    fi
+  fi
+}
+
+do_get() {
+  get_default_wine
+}
+
+# $1: Wine environment name to set as default
+do_set() {
+  if ! is_wine_valid "$1"; then
+    echo "'${WINE_DIR}/$1' is not a valid Wine environment path"
+    exit 1
+  fi
+  default=$(get_default_wine)
+  if [ "x$1" != "x${default}" ] || ! is_wine_valid "${default}"; then
+    unset_default_link
+    set_default_link_to $1
+  fi
+}
+
+# $1: Wine environment name to unset
+do_unset() {
+  unset_default_link
+}
+
+do_fix() {
+  default=$(get_default_wine)
+  if is_wine_valid "${default}"; then
+    unset_default_link
+    set_default_link_to ${default}
+  else
+    installed_wine=($(get_installed_wines))
+    if [ ${#installed_wine[@]} -eq 0 ]; then
+      echo 'No valid Wine environment found'
+    else
+      len=${#installed_wine[@]}
+      for ((i=len-1; i>=0; i--))
+      do
+	win_ver="${installed_wine[i]}"
+	if is_wine_valid "${win_ver}"; then
+	  unset_default_link
+	  set_default_link_to ${win_ver}
+	  break
+	fi
+      done
+    fi
+  fi
+  if ! is_wine_valid "$(get_default_wine)"; then
+    echo 'No valid Wine environment found'
+  fi
+}
+
+usage() {
+  echo "$(basename $0) <COMMAND>"
+  echo -e "\nCOMMAND:"
+  echo -e '\tstatus\t\tList installed Wine environments and enabled one'
+  echo -e '\tget\t\tReturn the short name of the Wine environment set as default'
+  echo -e '\tset <WINE_VER>\tForce <WINE_VER> as default'
+  echo -e '\tunset\t\tUnset current default Wine environment'
+  echo -e '\tfix\t\tFix an invalid/broken default Wine environment configuration'
+}
+
+## Main
+if [[ $# -eq 0 ]]; then
+  usage
+  exit
+fi
+
+case $1 in
+  'status') do_status;;
+  'get')    do_get;;
+  'set')    check_root; check_param_count $# 2; do_set $2;;
+  'unset')  check_root; do_unset;;
+  'fix')    check_root; do_fix;;
+  'help' | '--help' | '-h' | '') usage;;
+  *)           echo "$(basename $0): unknown option '$@'"; exit 1;;
+esac

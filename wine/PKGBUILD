@@ -1,11 +1,13 @@
 pkgver=7.19
-pkgrel=1
+pkgrel=2
 pkgname=wine
 pkgdesc="Meta package, always depends on the latest stable wine"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
 license=('GPL' 'LGPL2.1' 'MPL')
 depends=("wine$pkgver")
+source=(wine-change-version)
+sha256sums=('2fd44001e69de5edff5032f2927e74c2bd240000e43f316b668fc7173c0e441d')
 options=(!strip)
 _progs=(
   function_grep.pl
@@ -44,4 +46,5 @@ package() {
       ln -sf /opt/wine-${pkgver}/bin/$i ${pkgdir}/usr/bin/$i
     fi
   done
+  install -Dm755 $srcdir/wine-change-version ${pkgdir}/usr/bin/wine-change-version
 }
