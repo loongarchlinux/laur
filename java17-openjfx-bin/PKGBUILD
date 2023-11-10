@@ -1,0 +1,41 @@
+# Maintainer: Levente Polyak <anthraxx[at]archlinux[dot]org>
+# Maintainer: Frederik Schwan <freswa at archlinux dot org>
+# Contributor: Maxime Gauduin <alucryd@archlinux.org>
+# Contributor: Guillaume Alaux <guillaume@archlinux.org>
+# Contributor: William Gathoye <william + archlinux at gathoye dot be>
+# Contributor: Emanuel Couto <emanuel dot amaral dot couto at gmail dot com>
+# Contributor: Richard Jackson <rdjack21 at gmail dot com>
+# Contributor: Tinx <arch at tinx dot eu>
+# Contributor: Jens Kapitza <j dot kapitza at schwarze-allianz dot de>
+# Contributor: Olli <olli at coderkun dot de>
+
+pkgname=java17-openjfx
+pkgver=17.0.7.u2
+pkgrel=2
+pkgdesc="Java OpenJFX 17 client application platform (open-source implementation of JavaFX)"
+arch=(loong64 x86_64)
+url=https://wiki.openjdk.java.net/display/OpenJFX/Main
+license=(custom)
+depends=(
+  java-runtime-openjdk=17
+  libgl
+  libx11
+  libxtst
+)
+optdepends=(
+  'ffmpeg4.4: Media support',
+  'gtk2: GTK2 support',
+  'gtk3: GTK3 support',
+  'webkit2gtk: Web support'
+)
+provides=(java-openjfx=17)
+source=(
+    java17-openjfx.tar.zst
+)
+b2sums=('8516d9f651f6af715ff2b6483376de91f00e2b7492adada4d26847f32efa703e7c9e14e635deb695ffe25f6853100abd0aed6dec0d5961717bb75b8694f62982')
+
+package() {
+  install -dm 755  "${pkgdir}"/usr/{lib/jvm/java-17-openjdk,share/licenses}
+  cp -dr --no-preserve=ownership $srcdir/$pkgname/* "${pkgdir}"/
+  rm -f ${pkgdir}/usr/lib/jvm/java-17-openjdk/lib/libprism_es2.so
+}
