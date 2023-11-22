@@ -1,0 +1,97 @@
+# Maintainer: Rustmilian <#####[at]#####[dot]org>
+
+pkgname=calamares
+pkgver=3.3.0alpha3
+pkgrel=3
+pkgdesc='Distribution-independent installer framework'
+arch=(loong64 x86_64)
+url="https://calamares.io/"
+license=('GPL')
+depends=(
+    'cryptsetup'
+    'dmidecode'
+    'doxygen'
+    'gptfdisk'
+    'hwinfo'
+    'kconfig'
+    'kcoreaddons'
+    'ki18n'
+    'kparts'
+    'kpmcore'
+    'kservice'
+    'kwidgetsaddons'
+    'networkmanager'
+    'qt5-svg'
+#    'qt5-webengine'
+    'qt5-xmlpatterns'
+    'rsync'
+    'squashfs-tools'
+    'upower'
+    'yaml-cpp'
+    'boost-libs'
+    'ckbcomp'
+    'libpwquality'
+    'polkit-qt5'
+    'python'
+    'qt5-quickcontrols2'
+    'qt5-tools'
+    'solid'
+)
+makedepends=(
+    'boost'
+    'cmake'
+    'extra-cmake-modules'
+    'git'
+    'kpmcore'
+    'python-jsonschema'
+    'python-pyaml'
+    'python-unidecode'
+)
+options=(!strip !emptydirs)
+source=("git+https://github.com/archloong/calamares.git#branch=calamares-la64"
+	"calamares.desktop"
+	"calamares_polkit"
+	"49-nopasswd-calamares.rules"
+	)
+sha256sums=('SKIP'
+            '05c4ee3398ebc5168332888f83e49baf9e143641f11873eed14fcd2b6e409a54'
+            'c176b28007bd1c1f23d8dbb2c936fa54d0c01bacfb67290ddad597606c129df3'
+            '56d85ff6bf860b9559b8c9f997ad9b1002f3fccc782073760eca505e3bddd176')
+#pkgver() {
+#    cd ${srcdir}/${pkgname}
+#    printf "%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+#}
+
+prepare() {
+    cd ${srcdir}/${pkgname}
+    sed -i -e "s|\${CALAMARES_VERSION_MAJOR}.\${CALAMARES_VERSION_MINOR}.\${CALAMARES_VERSION_PATCH}|${pkgver}-${pkgrel}|g" CMakeLists.txt
+    sed -i -e "s|CALAMARES_VERSION_RC 1|CALAMARES_VERSION_RC 0|g" CMakeLists.txt
+}
+
+build() {
+    cmake -B build -S "${srcdir}/calamares" \
+    -DWEBVIEW_FORCE_WEBKIT=OFF \
+    -DWITH_PYTHONQT=OFF \
+    -DWITH_KF5DBus=OFF \
+    -DWITH_APPSTREAM=OFF \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_INSTALL_LIBDIR=/usr/lib \
+    -DBoost_NO_BOOST_CMAKE=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DINSTALL_CONFIG=OFF \
+    -DSKIP_MODULES="dracut \
+    dummycpp dummyprocess dummypython dummypythonqt \
+    finishedq initcpio keyboardq license localeq notesqml oemid \
+    openrcdmcryptcfg plymouthcfg plasmalnf services-openrc \
+    summaryq tracking usersq webview welcomeq"
+    export DESTDIR="$srcdir/build"
+    make -C build
+}
+
+package() {
+    make -C build DESTDIR="${pkgdir}" install
+    install -Dm644 "${srcdir}/calamares.desktop" "$pkgdir/etc/xdg/autostart/calamares.desktop"
+    install -Dm755 "${srcdir}/calamares_polkit" "$pkgdir/usr/bin/calamares_polkit"
+    install -Dm644 "${srcdir}/49-nopasswd-calamares.rules" "$pkgdir/etc/polkit-1/rules.d/49-nopasswd-calamares.rules"
+    chmod 750 "$pkgdir"/etc/polkit-1/rules.d
+}
