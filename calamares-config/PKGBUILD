@@ -1,0 +1,18 @@
+pkgname=calamares-config
+_destname1="/etc"
+pkgver=3.0
+pkgrel=4
+pkgdesc="calamares for LoongArch Linux"
+arch=('any')
+url="https://github.com/archloong/calamares-config"
+license=('GPL3')
+makedepends=('git')
+depends=()
+options=(!strip !emptydirs)
+source=("git+https://github.com/loongarchlinux/calamares-config.git#branch=main")
+sha256sums=('SKIP')
+
+package() {
+    install -dm755 ${pkgdir}/etc
+    cp -r ${srcdir}/${pkgname}/etc/calamares ${pkgdir}/etc/calamares
+}
