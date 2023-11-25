@@ -1,22 +1,18 @@
-Index: libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/transaction.vala
-===================================================================
---- libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df.orig/src/transaction.vala
-+++ libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/transaction.vala
-@@ -601,6 +601,9 @@ namespace Pamac {
- 				}
- 				emit_action (dgettext (null, "Checking %s dependencies").printf (pkgname) + "...");
- 				string arch = Posix.utsname ().machine;
-+				if (arch == "loongarch64") {
-+					arch = "loong64";
-+				}
- 				if (clone_dir.query_exists ()) {
- 					// use .SRCINFO
- 					var srcinfo = clone_dir.get_child (".SRCINFO");
-Index: libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/alpm_config.vala
-===================================================================
---- libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df.orig/src/alpm_config.vala
-+++ libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/alpm_config.vala
-@@ -292,7 +289,11 @@ internal class AlpmConfig {
+From 68bbbc08f8b7aaf8171d3dd1e504a5969e972143 Mon Sep 17 00:00:00 2001
+From: Xiaotian Wu <wuxiaotian@loongson.cn>
+Date: Sat, 25 Nov 2023 20:42:25 +0800
+Subject: [PATCH 1/2] Add LoongArch support
+
+---
+ src/alpm_config.vala | 6 +++++-
+ src/transaction.vala | 3 +++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/alpm_config.vala b/src/alpm_config.vala
+index 9565aeb..61ad920 100644
+--- a/src/alpm_config.vala
++++ b/src/alpm_config.vala
+@@ -305,7 +305,11 @@ internal class AlpmConfig {
  						} else if (key == "Architecture") {
  							foreach (unowned string arch in val.split (" ")) {
  								if (arch == "auto") {
@@ -29,3 +25,20 @@ Index: libpamac-9b64211cc08d8ec27df98c157261b8b9c04d11df/src/alpm_config.vala
  								} else {
  									architectures.add (arch);
  								}
+diff --git a/src/transaction.vala b/src/transaction.vala
+index ce64bbc..aae8fce 100644
+--- a/src/transaction.vala
++++ b/src/transaction.vala
+@@ -628,6 +628,9 @@ namespace Pamac {
+ 				}
+ 				emit_action (dgettext (null, "Checking %s dependencies").printf (pkgname) + "...");
+ 				string arch = Posix.utsname ().machine;
++				if (arch == "loongarch64") {
++					arch = "loong64";
++				}
+ 				if (clone_dir.query_exists ()) {
+ 					// use .SRCINFO
+ 					var srcinfo = clone_dir.get_child (".SRCINFO");
+-- 
+2.42.0
+

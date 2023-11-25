@@ -5,23 +5,23 @@ ENABLE_FLATPAK=0
 ENABLE_SNAPD=0
 
 pkgname=libpamac-aur
-pkgver=11.4.1
-pkgrel=2
+pkgver=11.6.2
+pkgrel=1
 _pkgfixver=$pkgver
 
-_commit='29d71809ee4171585d58a2f652a2eaa05e3dbfb0'
-sha256sums=('b7f69c45f89fc587241b0237dab00cb19314904a4dc7025523aebd28ea59d3d2'
+_commit='e74fe0e1c15f4fd14d02ff12650be3fde47287d7'
+sha256sums=('7b8690f8eb78c5960723b2b28185af4ca156b88547cf9e14d309b003600ab2a4'
             '6e0c25f0fcb0076ce78845b037e32925fcc3f1cd1670062c48ed35f564a10244'
-            'c2b943318a01ba1f3dabbf32e48e6a6f4b4b774e167ab86c6bfee31aa4a3424c'
-            '5de77019349006648361435f75ba52b9624b22a35ddb2d62b83e80cd5e08e7a9'
-            'c83becba561cbb7e6232b7b6b02f866eec3cea8b2c761e508b70bd6189aad101')
+            'c4bf929909f7e55b2b5cc0bc5150be98931cf5a9dfa8175895ed44ecdae5a04b'
+            '04b36092fdd4621f16285ae8441341611addddc2fb2889d4e755cef6f6adff7a'
+            '2f14cb4313b0b856307b15da704e6676b12bc00bc30cc3124582843e8d191e7a')
 
 pkgdesc="Pamac package manager library based on libalpm"
 arch=('i686' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64' 'loong64')
 url="https://gitlab.manjaro.org/applications/libpamac"
 license=('GPL3')
 depends=('glib2>=2.42' 'json-glib' 'libsoup3' 'dbus-glib' 'polkit' 'vte3>=0.38' 
-         'libnotify' 'pacman>=6.0' 'pacman<6.1' 'gnutls>=3.4' 'git'
+         'libnotify' 'pacman>=6.0' 'pacman<6.1' 'gnutls>=3.4' 'appstream'
          'appstream-glib>=0.7.18-1' 'archlinux-appstream-data' 'git')
 
 makedepends=('gettext' 'itstool' 'vala>=0.46'  'asciidoc' 'meson' 'ninja' 'gobject-introspection')
@@ -33,7 +33,8 @@ install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
         libpamac-loong64.patch
-        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch")
+        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch"
+)
 
 define_meson=''
 if [ "${ENABLE_FLATPAK}" = 1 ]; then
@@ -59,6 +60,7 @@ build() {
   mkdir -p builddir
   cd builddir
   meson setup --buildtype=release \
+        -Denable-aur=true -Denable-appstream=true \
         --prefix=/usr \
         --sysconfdir=/etc $define_meson
   # build

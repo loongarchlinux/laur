@@ -20,7 +20,7 @@ post_install() {
      # enable flatpak repo
   if [ -f /usr/bin/flatpak ]; then
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  fi   
+  fi
   # enable systemd timers
   mkdir -p /etc/systemd/system/timers.target.wants
   ln -sf /usr/lib/systemd/system/pamac-cleancache.timer /etc/systemd/system/timers.target.wants/pamac-cleancache.timer
