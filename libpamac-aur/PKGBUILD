@@ -14,7 +14,7 @@ sha256sums=('965ea2c39b3999bb0ac5ec75da150d43fdd35deb02c0c113deef84e96ee636de'
             '6e0c25f0fcb0076ce78845b037e32925fcc3f1cd1670062c48ed35f564a10244'
             'b5236af02c25cd7de4b2c9c2d0f064dac3c2f54da5cc72bf72fc6236a34bd9c4'
             '04b36092fdd4621f16285ae8441341611addddc2fb2889d4e755cef6f6adff7a'
-            '86c10ed897ae299094bfccc4d617f1fa63b78d31f0890ee6df5fcb33d10a3702')
+            '716f16d0d2b1666c1c0cbba4619cae6a9020756f22f376349fcfdb2574144bf6')
 
 pkgdesc="Pamac package manager library based on libalpm"
 arch=('i686' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64' 'loong64')
@@ -33,7 +33,7 @@ install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
         libpamac-loong64.patch
-        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/b10b0277a13fb7fae25f61c493ac8c0e/libpamac-wine-apps.patch"
+        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/262aa40a8ed1e2380b55ecfa150aaad5/libpamac-wine-apps.patch"
 )
 
 define_meson=''
