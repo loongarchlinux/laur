@@ -5,16 +5,16 @@ ENABLE_FLATPAK=0
 ENABLE_SNAPD=0
 
 pkgname=libpamac-aur
-pkgver=11.6.2
+pkgver=11.6.3
 pkgrel=1
 _pkgfixver=$pkgver
 
-_commit='e74fe0e1c15f4fd14d02ff12650be3fde47287d7'
-sha256sums=('7b8690f8eb78c5960723b2b28185af4ca156b88547cf9e14d309b003600ab2a4'
+_commit='dff0d861a492e0dcbfb03b134cf737e627315d52'
+sha256sums=('965ea2c39b3999bb0ac5ec75da150d43fdd35deb02c0c113deef84e96ee636de'
             '6e0c25f0fcb0076ce78845b037e32925fcc3f1cd1670062c48ed35f564a10244'
-            'c4bf929909f7e55b2b5cc0bc5150be98931cf5a9dfa8175895ed44ecdae5a04b'
+            'b5236af02c25cd7de4b2c9c2d0f064dac3c2f54da5cc72bf72fc6236a34bd9c4'
             '04b36092fdd4621f16285ae8441341611addddc2fb2889d4e755cef6f6adff7a'
-            '2f14cb4313b0b856307b15da704e6676b12bc00bc30cc3124582843e8d191e7a')
+            '86c10ed897ae299094bfccc4d617f1fa63b78d31f0890ee6df5fcb33d10a3702')
 
 pkgdesc="Pamac package manager library based on libalpm"
 arch=('i686' 'x86_64' 'arm' 'armv6h' 'armv7h' 'aarch64' 'loong64')
@@ -33,7 +33,7 @@ install=pamac.install
 source=("libpamac-$pkgver-$pkgrel.tar.gz::$url/-/archive/$_commit/libpamac-$_commit.tar.gz"
         fix-appstream-data.sh fix-appstream-data.hook
         libpamac-loong64.patch
-        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/f0f3dab76ac0285f76a9f398547b1031/libpamac-wine-apps.patch"
+        "libpamac-wine-apps.patch::http://public.loongarch.dev/sources/libpamac-aur/libpamac-wine-apps.patch/b10b0277a13fb7fae25f61c493ac8c0e/libpamac-wine-apps.patch"
 )
 
 define_meson=''
@@ -46,6 +46,16 @@ if [ "${ENABLE_SNAPD}" = 1 ]; then
   depends+=('snapd' 'snapd-glib')
   define_meson+=' -Denable-snap=true'
 fi
+
+create_links() {
+  # create soname links
+  find "$pkgdir" -type f -name '*.so*' ! -path '*xorg/*' -print0 | while read -d $'\0' _lib; do
+      _soname=$(dirname "${_lib}")/$(readelf -d "${_lib}" | grep -Po 'SONAME.*: \[\K[^]]*' || true)
+      _base=$(echo ${_soname} | sed -r 's/(.*)\.so.*/\1.so/')
+      [[ -e "${_soname}" ]] || ln -s $(basename "${_lib}") "${_soname}"
+      [[ -e "${_base}" ]] || ln -s $(basename "${_soname}") "${_base}"
+  done
+}
 
 prepare() {
   cd "$srcdir/libpamac-$_commit"
@@ -73,6 +83,7 @@ package() {
   # fix appstream issue
   install -Dm644 "$srcdir/fix-appstream-data.hook" "$pkgdir/etc/pacman.d/hooks/fix-appstream-data.hook"
   install -Dm755 "$srcdir/fix-appstream-data.sh" "$pkgdir/etc/pacman.d/hooks.bin/fix-appstream-data.sh"  
+  create_links
 
 }
 # vim:set ts=2 sw=2 et:
