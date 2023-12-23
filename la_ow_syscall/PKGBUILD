@@ -6,12 +6,12 @@ arch=(any)
 url="https://github.com/shankerwangmiao/la_ow_syscall"
 license=(GPL2)
 depends=(dkms)
-source=("git+https://github.com/shankerwangmiao/la_ow_syscall.git"
+source=("git+https://github.com/AOSC-Dev/la_ow_syscall.git"
     dkms.conf
     Makefile
     )
 sha256sums=('SKIP'
-            '4a4d524fe00bf5eedf3e49761ea800ffd72254f9383a6fc84686e496ee8c60d8'
+            '23a107671bea57f50956fca647999976034293bb49385c5dc881167c96c622c5'
             'a7b7e38907776ec3586aee84d18c3cadb8350f0b13722ca79f461390fea81d92')
 
 package() {
