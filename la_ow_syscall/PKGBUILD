@@ -1,0 +1,21 @@
+pkgname=la_ow_syscall-dkms
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="loongarch old-world syscall module sources"
+arch=(any)
+url="https://github.com/shankerwangmiao/la_ow_syscall"
+license=(GPL2)
+depends=(dkms)
+source=("git+https://github.com/shankerwangmiao/la_ow_syscall.git"
+    dkms.conf
+    Makefile
+    )
+sha256sums=('SKIP'
+            '4a4d524fe00bf5eedf3e49761ea800ffd72254f9383a6fc84686e496ee8c60d8'
+            'a7b7e38907776ec3586aee84d18c3cadb8350f0b13722ca79f461390fea81d92')
+
+package() {
+  cd la_ow_syscall
+  install -Dm644 fsstat.c  fsstat.h  Kbuild  la_ow_syscall_main.c  signal.c  signal.h -t "${pkgdir}"/usr/src/${pkgbase}-${pkgver}/
+  install -Dm644 ${srcdir}/dkms.conf ${srcdir}/Makefile -t "${pkgdir}"/usr/src/${pkgbase}-${pkgver}/
+}
