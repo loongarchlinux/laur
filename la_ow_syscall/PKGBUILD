@@ -11,7 +11,7 @@ source=("git+https://github.com/AOSC-Dev/la_ow_syscall.git"
     Makefile
     )
 sha256sums=('SKIP'
-            '23a107671bea57f50956fca647999976034293bb49385c5dc881167c96c622c5'
+            'c4ba4207dcc933bf3c749c6cba5d867c23daf97e0ff162d8a43fcef55e01a8d1'
             'a7b7e38907776ec3586aee84d18c3cadb8350f0b13722ca79f461390fea81d92')
 
 package() {
