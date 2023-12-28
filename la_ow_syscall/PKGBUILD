@@ -7,20 +7,20 @@ url="https://github.com/AOSC-Dev/la_ow_syscall"
 license=(GPL2)
 makedepends=(git)
 depends=(dkms)
-source=("git+https://github.com/AOSC-Dev/la_ow_syscall.git#branch=master")
-sha256sums=('SKIP')
+source=("git+https://github.com/AOSC-Dev/la_ow_syscall.git#branch=master"
+    dkms.conf
+    Makefile
+    )
+sha256sums=('SKIP'
+            '6319e2ac676f84937bd20cc2123a9eb0ccd6fbbd98eef76f29e95bb5ef6bf0e5'
+            'a7b7e38907776ec3586aee84d18c3cadb8350f0b13722ca79f461390fea81d92')
 
 pkgver() {
   cd la_ow_syscall
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
-build() {
-  cd la_ow_syscall
-  make dkms.conf
-}
-
 package() {
   cd la_ow_syscall
-  install -Dm644 *.c *.h dkms.conf VERSION Makefile -t "${pkgdir}"/usr/src/${pkgbase}-${pkgver}/
+  install -Dm644 *.c *.h ${srcdir}/dkms.conf  ${srcdir}/Makefile -t "${pkgdir}"/usr/src/la_ow_syscall-${pkgver}/
 }
