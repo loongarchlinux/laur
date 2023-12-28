@@ -3,7 +3,7 @@
 
 pkgname=chromium-snapshot-bin
 pkgver=102.0.5005.63.r1
-pkgrel=1
+pkgrel=2
 pkgdesc="The open-source project behind Google Chrome (Latest Snapshot)"
 arch=('loong64' 'x86_64')
 url="https://build.chromium.org"
@@ -16,13 +16,13 @@ optdepends=('kdialog: needed for file dialogs in KDE'
             'ttf-liberation: fix fonts for some PDFs [RBug #369991]')
 provides=('chromium')
 install=$pkgname.install
-_build=1
-source=("chrome-linux-r$_build.zip::http://loongarch.zhcn.cc/list/chromium/chrome-linux.zip/d3e4fab1dadf9f7bf700d0b298388e78/chrome-linux.zip"
+_build=2
+source=("chrome-linux-r$_build.zip::http://public.loongarch.dev/sources/chromium/chrome-linux-r2.zip/9e5130a8ae1944e4596db5bf7ad11bbc/chrome-linux-r2.zip"
         "$pkgname.sh"
         "$pkgname.desktop"
         "$pkgname"_{16,22,24,32,48,64,128,256}.png
         'LICENSE')
-sha1sums=('bd68b957a4974e2260f6aa53713f0c984870be2b'
+sha1sums=('3ff7eba8e7748643ed231dd49303626b21f80ea6'
           '12c3b365d3765ab8d049b517c3f598563ef0c45b'
           'e64637c07b921f197fc1d7fd031c8a73ea3a55f8'
           '1cbdde48d193a648723f948370eff9b7b2fbf3f9'
