@@ -16,6 +16,7 @@ optdepends=('kdialog: needed for file dialogs in KDE'
             'ttf-liberation: fix fonts for some PDFs [RBug #369991]')
 provides=('chromium')
 install=$pkgname.install
+options=(strip !debug)
 _build=2
 source=("chrome-linux-r$_build.zip::http://public.loongarch.dev/sources/chromium/chrome-linux-r2.zip/9e5130a8ae1944e4596db5bf7ad11bbc/chrome-linux-r2.zip"
         "$pkgname.sh"
