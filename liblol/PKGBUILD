@@ -11,5 +11,6 @@ sha256sums=('832d86ffc6f5c09e0bd8e6c03886885fb53616f561e57f1a9f01ead247a995de')
 OPTIONS=(strip !debug)
 
 package() {
-      tar -C ${pkgdir} -xf data.tar.xz
+  tar -C ${pkgdir} -xf data.tar.xz
+  ln -sf /opt/lol/lib/loongarch64-aosc-linux-gnuow/ld-2.28.so ${pkgdir}/usr/lib/ld.so.1
 }
