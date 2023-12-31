@@ -22,5 +22,5 @@ pkgver() {
 
 package() {
   cd la_ow_syscall
-  install -Dm644 *.c *.h ${srcdir}/dkms.conf  ${srcdir}/Makefile -t "${pkgdir}"/usr/src/la_ow_syscall-${pkgver}/
+  install -Dm644 *.c *.h ${srcdir}/dkms.conf ${srcdir}/Makefile -t "${pkgdir}"/usr/src/la_ow_syscall-${pkgver}/
 }
