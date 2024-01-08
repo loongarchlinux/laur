@@ -2,7 +2,7 @@
 
 pkgname=calamares
 pkgver=3.3.0alpha3
-pkgrel=3
+pkgrel=5
 pkgdesc='Distribution-independent installer framework'
 arch=(loong64 x86_64)
 url="https://calamares.io/"
@@ -13,13 +13,13 @@ depends=(
     'doxygen'
     'gptfdisk'
     'hwinfo'
-    'kconfig'
-    'kcoreaddons'
-    'ki18n'
-    'kparts'
+    'kconfig5'
+    'kcoreaddons5'
+    'ki18n5'
+    'kparts5'
     'kpmcore'
-    'kservice'
-    'kwidgetsaddons'
+    'kservice5'
+    'kwidgetsaddons5'
     'networkmanager'
     'qt5-svg'
 #    'qt5-webengine'
@@ -35,7 +35,7 @@ depends=(
     'python'
     'qt5-quickcontrols2'
     'qt5-tools'
-    'solid'
+    'solid5'
 )
 makedepends=(
     'boost'
@@ -55,7 +55,7 @@ source=("git+https://github.com/archloong/calamares.git#branch=calamares-la64"
 	)
 sha256sums=('SKIP'
             '05c4ee3398ebc5168332888f83e49baf9e143641f11873eed14fcd2b6e409a54'
-            'c176b28007bd1c1f23d8dbb2c936fa54d0c01bacfb67290ddad597606c129df3'
+            '71f74f23f19f828c2f9051f0616a347e632b6d12387f5b1095b6696ed2ce37f2'
             '56d85ff6bf860b9559b8c9f997ad9b1002f3fccc782073760eca505e3bddd176')
 #pkgver() {
 #    cd ${srcdir}/${pkgname}
