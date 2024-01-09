@@ -1,6 +1,6 @@
 pkgname=liblol
 pkgver=0.0.4
-pkgrel=2
+pkgrel=3
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"

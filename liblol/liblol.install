@@ -4,13 +4,9 @@ post_install() {
   GDK_PIXBUF_UPDATER=${LIBDIR}/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders
 
   if [ -d "$GDK_PIXBUF_LOADERS_DIR" ]; then
-    echo "Updating gdk-pixbuf loaders cache..." >&2
     if ! "$GDK_PIXBUF_UPDATER" --update-cache; then
-      echo "Failed to update gdk-pixbuf loaders cache." >&2
-      echo "It might be caused by not loading the old world compatibility module." >&2
       cp -f "/usr/share/liblol/gdk-pixbuf-query-loaders.cache.default" "${LIBDIR}/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-      echo "I have copied the default cache file" >&2
-      echo "Please run '$GDK_PIXBUF_UPDATER --update-cache' manually after loading" >&2
+      echo "Please run '/$GDK_PIXBUF_UPDATER --update-cache' manually" >&2
     fi
   fi
 
@@ -18,13 +14,9 @@ post_install() {
   GTK2_IM_UPDATER=${LIBDIR}/libgtk2.0-0/gtk-query-immodules-2.0
 
   if [ -d "$GTK2_IM_DIR" ]; then
-    echo "Updating gtk2 immodules cache..." >&2
     if ! "$GTK2_IM_UPDATER" --update-cache; then
-      echo "Failed to update gtk2 immodules cache." >&2
-      echo "It might be caused by not loading the old world compatibility module." >&2
       cp -f "/usr/share/liblol/gtk2-immodules.cache.default" "${LIBDIR}/gtk-2.0/2.10.0/immodules.cache"
-      echo "I have copied the default cache file" >&2
-      echo "Please run '$GTK2_IM_UPDATER --update-cache' manually after loading" >&2
+      echo "Please run '/$GTK2_IM_UPDATER --update-cache' manually" >&2
     fi
   fi
 
@@ -32,13 +24,9 @@ post_install() {
   GTK3_IM_UPDATER=${LIBDIR}/libgtk-3-0/gtk-query-immodules-3.0
 
   if [ -d "$GTK3_IM_DIR" ]; then
-    echo "Updating gtk3 immodules cache..." >&2
     if ! "$GTK3_IM_UPDATER" --update-cache; then
-      echo "Failed to update gtk3 immodules cache." >&2
-      echo "It might be caused by not loading the old world compatibility module." >&2
       cp -f "/usr/share/liblol/gtk3-immodules.cache.default" "${LIBDIR}/gtk-3.0/3.0.0/immodules.cache"
-      echo "I have copied the default cache file" >&2
-      echo "Please run '$GTK3_IM_UPDATER --update-cache' manually after loading" >&2
+      echo "Please run '/$GTK3_IM_UPDATER --update-cache' manually" >&2
     fi
   fi
 
@@ -46,23 +34,14 @@ post_install() {
   GIO_MOD_UPDATER=${LIBDIR}/glib-2.0/gio-querymodules
 
   if [ -d "$GIO_MOD_DIR" ]; then
-    echo "Updating gio modules cache..." >&2
     if ! "$GIO_MOD_UPDATER" "$GIO_MOD_DIR"; then
-      echo "Failed to update gio modules cache." >&2
-      echo "It might be caused by not loading the old world compatibility module." >&2
       cp -f "/usr/share/liblol/giomodule.cache.default" "${LIBDIR}/gio/modules/giomodule.cache"
-      echo "I have copied the default cache file" >&2
-      echo "Please run '$GIO_MOD_UPDATER $GIO_MOD_DIR' manually after loading" >&2
+      echo "Please run '/$GIO_MOD_UPDATER $GIO_MOD_DIR' manually" >&2
     fi
   fi
 
   if ! systemd-detect-virt --container >/dev/null; then
-    echo "Loading the la_ow_syscall (old-world syscall compatibility) kernel module ..."
-    modprobe la_ow_syscall || \
-      echo "
-  Warning: The la_ow_syscall kernel module does not appear to be available.
-  Old-world applications may not run.
-"
+    echo "Please run 'modprobe la_ow_syscall' manually or reboot system" >&2
   fi
 }
 
