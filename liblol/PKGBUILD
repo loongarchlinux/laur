@@ -1,22 +1,17 @@
 pkgname=liblol
 pkgver=0.0.4
-pkgrel=1
+pkgrel=2
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"
 license=(GPL2)
 depends=(la_ow_syscall-dkms)
-source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb"
-    loaders.cache)
-sha256sums=('1dd58112d003baefa47b4709fa8de6ac221bab0e6ce94db3a7129fffe610bcaa'
-            'bc8c9a37a9cb8b6549be8785c35515c2d6ab48ef5e937fda5ad1a706a3ade8ff')
-OPTIONS=(strip !debug)
+source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
+sha256sums=('1dd58112d003baefa47b4709fa8de6ac221bab0e6ce94db3a7129fffe610bcaa')
+install="${pkgname}.install"
+options=(strip !debug)
 
 package() {
   tar -C ${pkgdir} -xf data.tar.xz
-  ln -sf /opt/lol/lib/loongarch64-aosc-linux-gnuow/ld-2.28.so ${pkgdir}/usr/lib/ld.so.1
   rm -rf ${pkgdir}/usr/share/doc
-  if ! grep opt ${pkgdir}/opt/lol/lib/loongarch64-aosc-linux-gnuow/gdk-pixbuf-2.0/2.10.0/loaders.cache; then
-    cp ${srcdir}/loaders.cache ${pkgdir}/opt/lol/lib/loongarch64-aosc-linux-gnuow/gdk-pixbuf-2.0/2.10.0/loaders.cache
-  fi
 }
