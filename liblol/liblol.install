@@ -1,73 +1,9 @@
-LIBDIR=opt/lol/lib/loongarch64-aosc-linux-gnuow
 post_install() {
-  GDK_PIXBUF_LOADERS_DIR=${LIBDIR}/gdk-pixbuf-2.0/2.10.0/loaders
-  GDK_PIXBUF_UPDATER=${LIBDIR}/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders
-
-  if [ -d "$GDK_PIXBUF_LOADERS_DIR" ]; then
-    if ! "$GDK_PIXBUF_UPDATER" --update-cache; then
-      cp -f "/usr/share/liblol/gdk-pixbuf-query-loaders.cache.default" "${LIBDIR}/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-      echo "Please run '/$GDK_PIXBUF_UPDATER --update-cache' manually" >&2
-    fi
-  fi
-
-  GTK2_IM_DIR=${LIBDIR}/gtk-2.0/2.10.0/immodules
-  GTK2_IM_UPDATER=${LIBDIR}/libgtk2.0-0/gtk-query-immodules-2.0
-
-  if [ -d "$GTK2_IM_DIR" ]; then
-    if ! "$GTK2_IM_UPDATER" --update-cache; then
-      cp -f "/usr/share/liblol/gtk2-immodules.cache.default" "${LIBDIR}/gtk-2.0/2.10.0/immodules.cache"
-      echo "Please run '/$GTK2_IM_UPDATER --update-cache' manually" >&2
-    fi
-  fi
-
-  GTK3_IM_DIR=${LIBDIR}/gtk-3.0/3.0.0/immodules
-  GTK3_IM_UPDATER=${LIBDIR}/libgtk-3-0/gtk-query-immodules-3.0
-
-  if [ -d "$GTK3_IM_DIR" ]; then
-    if ! "$GTK3_IM_UPDATER" --update-cache; then
-      cp -f "/usr/share/liblol/gtk3-immodules.cache.default" "${LIBDIR}/gtk-3.0/3.0.0/immodules.cache"
-      echo "Please run '/$GTK3_IM_UPDATER --update-cache' manually" >&2
-    fi
-  fi
-
-  GIO_MOD_DIR=${LIBDIR}/gio/modules
-  GIO_MOD_UPDATER=${LIBDIR}/glib-2.0/gio-querymodules
-
-  if [ -d "$GIO_MOD_DIR" ]; then
-    if ! "$GIO_MOD_UPDATER" "$GIO_MOD_DIR"; then
-      cp -f "/usr/share/liblol/giomodule.cache.default" "${LIBDIR}/gio/modules/giomodule.cache"
-      echo "Please run '/$GIO_MOD_UPDATER $GIO_MOD_DIR' manually" >&2
-    fi
-  fi
-
   if ! systemd-detect-virt --container >/dev/null; then
     echo "Please run 'modprobe la_ow_syscall' manually or reboot system" >&2
   fi
 }
 
 post_upgrade() {
-	post_install
-}
-
-pre_remove() {
-  if [ -d "${LIBDIR}/gdk-pixbuf-2.0/2.10.0" ]; then
-    rm -f "${LIBDIR}/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-    rmdir -p --ignore-fail-on-non-empty ${LIBDIR}/gdk-pixbuf-2.0/2.10.0
-  fi
-
-  rm -f "${LIBDIR}/gtk-2.0/2.10.0/immodules.cache"
-  rm -f "${LIBDIR}/gtk-3.0/3.0.0/immodules.cache"
-  rm -f "${LIBDIR}/gio/modules/giomodule.cache"
-
-  if [ -d "${LIBDIR}/gtk-2.0/2.10.0" ]; then
-    rmdir -p --ignore-fail-on-non-empty "${LIBDIR}/gtk-2.0/2.10.0"
-  fi
-
-  if [ -d "${LIBDIR}/gtk-3.0/3.0.0" ]; then
-    rmdir -p --ignore-fail-on-non-empty "${LIBDIR}/gtk-3.0/3.0.0"
-  fi
-
-  if [ -d "${LIBDIR}/gio/modules" ]; then
-    rmdir -p --ignore-fail-on-non-empty "${LIBDIR}/gio/modules"
-  fi
+  post_install
 }
