@@ -1,5 +1,5 @@
 pkgname=liblol
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
@@ -7,7 +7,7 @@ url="https://github.com/AOSC-Dev/liblol"
 license=(GPL2)
 depends=(la_ow_syscall-dkms)
 source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
-sha256sums=('16ea30665d465ecacc8e2a54ef4d914ed95029aae42bf3a460ae1e85ffce3c5c')
+sha256sums=('5fc8b8e348bdf4e19f61b2b9ba29147f5baa65f78f59d960fe48c45e6a143e75')
 install="${pkgname}.install"
 options=(strip !debug)
 
