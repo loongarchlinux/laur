@@ -1,7 +1,7 @@
 pkgname=lat
-pkgver=1.4.3
-pkgrel=3
-pkgdate=20231218
+pkgver=1.4.4
+pkgrel=1
+pkgdate=20240120
 pkgdesc="Loongson Architecture Translator"
 arch=('loong64')
 url="http://loongnix.cn"
@@ -12,7 +12,7 @@ provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 OPTIONS=(strip)
 source=(lat-${pkgver}-${pkgdate}.tar.xz)
-sha256sums=('2c81efdc5cc59628ed628ff0ab590776d0757034e432c540dd622c888cfeffbf')
+sha256sums=('f3c4988c490d82b046012ff2d1ef56c2c6051fa56b1b88d7e4ce49acfe2872e1')
 
 package() {
   cd $pkgname-$pkgver
