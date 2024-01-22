@@ -1,6 +1,6 @@
 pkgname=liblol
 pkgver=0.1.3
-pkgrel=1
+pkgrel=2
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"
@@ -14,4 +14,5 @@ options=(strip !debug)
 package() {
   tar -C ${pkgdir} -xf data.tar.xz
   rm -rf ${pkgdir}/usr/share/doc
+  mkdir -p ${pkgdir}/opt/lol/local/{lib,preload-lib}
 }
