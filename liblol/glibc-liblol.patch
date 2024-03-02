@@ -1,0 +1,2500 @@
+diff --git a/elf/Makefile b/elf/Makefile
+index c00e2ccfc5..ed1f709c24 100644
+--- a/elf/Makefile
++++ b/elf/Makefile
+@@ -1355,9 +1355,10 @@ endif
+ $(objpfx)trusted-dirs.h: $(objpfx)trusted-dirs.st; @:
+ $(objpfx)trusted-dirs.st: Makefile $(..)Makeconfig
+ 	$(make-target-directory)
+-	echo "$(subst :, ,$(default-rpath) $(user-defined-trusted-dirs))"    \
++	echo "$(subst :, ,$(user-defined-trusted-dirs-pre) $(default-rpath) $(user-defined-trusted-dirs))"    \
+ 	| $(AWK) -f gen-trusted-dirs.awk > ${@:st=T};
+ 	echo '#define DL_DST_LIB "$(notdir $(slibdir))"' >> ${@:st=T}
++	echo '#define SYSTEM_DIRS_PRE_COUNT $(words $(subst :, ,$(user-defined-trusted-dirs-pre)))' >> ${@:st=T}
+ 	$(move-if-change) ${@:st=T} ${@:st=h}
+ 	touch $@
+ CPPFLAGS-dl-load.c += -I$(objpfx). -I$(csu-objpfx).
+diff --git a/elf/dl-load.c b/elf/dl-load.c
+index 9a87fda9c9..d11309f2f6 100644
+--- a/elf/dl-load.c
++++ b/elf/dl-load.c
+@@ -123,6 +123,9 @@ static const size_t system_dirs_len[] =
+   SYSTEM_DIRS_LEN
+ };
+ #define nsystem_dirs_len array_length (system_dirs_len)
++#define normal_system_dirs_len (nsystem_dirs_len - SYSTEM_DIRS_PRE_COUNT)
++
++static_assert (SYSTEM_DIRS_PRE_COUNT < nsystem_dirs_len, "should have at least one system dir");
+ 
+ static bool
+ is_trusted_path_normalize (const char *path, size_t len)
+@@ -723,7 +726,7 @@ _dl_init_paths (const char *llp, const char *source,
+ 
+   /* First set up the rest of the default search directory entries.  */
+   aelem = __rtld_search_dirs.dirs = (struct r_search_path_elem **)
+-    malloc ((nsystem_dirs_len + 1) * sizeof (struct r_search_path_elem *));
++    malloc ((nsystem_dirs_len + 2) * sizeof (struct r_search_path_elem *));
+   if (__rtld_search_dirs.dirs == NULL)
+     {
+       errstring = N_("cannot create search path array");
+@@ -748,11 +751,17 @@ _dl_init_paths (const char *llp, const char *source,
+   pelem = GL(dl_all_dirs) = __rtld_search_dirs.dirs[0];
+   strp = system_dirs;
+   idx = 0;
++  aelem = &__rtld_search_dirs.dirs[normal_system_dirs_len + 1];
+ 
+   do
+     {
+       size_t cnt;
+ 
++      if (aelem == &__rtld_search_dirs.dirs[nsystem_dirs_len + 1]){
++        *aelem = NULL;
++        aelem = &__rtld_search_dirs.dirs[0];
++      }
++
+       *aelem++ = pelem;
+ 
+       pelem->what = "system search path";
+@@ -2022,9 +2031,22 @@ _dl_map_object (struct link_map *loader, const char *name,
+ 
+       fd = -1;
+ 
++      if (SYSTEM_DIRS_PRE_COUNT > 0
++          && ((l = loader ?: GL(dl_ns)[nsid]._ns_loaded) == NULL
++          || __glibc_likely (!(l->l_flags_1 & DF_1_NODEFLIB)))
++          && __rtld_search_dirs.dirs != (void *) -1)
++        {
++          struct r_search_path_struct pre_sp = {
++            .dirs = &__rtld_search_dirs.dirs[normal_system_dirs_len + 1],
++            .malloced = 0,
++          };
++          fd = open_path (name, namelen, mode, &pre_sp,
++              &realname, &fb, l, LA_SER_DEFAULT, &found_other_class);
++        }
++
+       /* When the object has the RUNPATH information we don't use any
+ 	 RPATHs.  */
+-      if (loader == NULL || loader->l_info[DT_RUNPATH] == NULL)
++      if (fd == -1 && (loader == NULL || loader->l_info[DT_RUNPATH] == NULL))
+ 	{
+ 	  /* This is the executable's map (if there is one).  Make sure that
+ 	     we do not look at it twice.  */
+diff --git a/nptl/Versions b/nptl/Versions
+index 3221de89d1..a0df5497ac 100644
+--- a/nptl/Versions
++++ b/nptl/Versions
+@@ -533,3 +533,264 @@ ld {
+      __nptl_set_robust_list_avail;
+   }
+ }
++
++libpthread_in_libc {
++  GLIBC_2.0 {
++    pthread_create; pthread_join;
++    pthread_exit; pthread_detach;
++
++    pthread_mutex_init; pthread_mutex_destroy;
++    pthread_mutex_lock; pthread_mutex_trylock; pthread_mutex_unlock;
++
++    pthread_mutexattr_init; pthread_mutexattr_destroy;
++
++    pthread_cond_wait; pthread_cond_timedwait;
++    pthread_cond_signal; pthread_cond_broadcast;
++
++    pthread_cancel; pthread_testcancel;
++    pthread_setcancelstate; pthread_setcanceltype;
++
++    pthread_sigmask; pthread_kill;
++
++    pthread_key_create; pthread_key_delete;
++    pthread_getspecific; pthread_setspecific;
++
++    pthread_once;
++
++    pthread_atfork;
++
++    flockfile; funlockfile; ftrylockfile;
++
++    # Non-standard POSIX1.x functions.
++    pthread_mutexattr_getkind_np; pthread_mutexattr_setkind_np;
++
++    # Protected names for functions used in other shared objects.
++    __pthread_mutex_init; __pthread_mutex_destroy;
++    __pthread_mutex_lock; __pthread_mutex_trylock; __pthread_mutex_unlock;
++    __pthread_mutexattr_init; __pthread_mutexattr_destroy;
++    __pthread_mutexattr_settype;
++    __pthread_key_create; __pthread_getspecific; __pthread_setspecific;
++    __pthread_once; __pthread_atfork;
++    _IO_flockfile; _IO_ftrylockfile; _IO_funlockfile;
++
++    # Semaphores.
++    sem_destroy; sem_getvalue; sem_init; sem_post; sem_trywait; sem_wait;
++
++    # Special fork handling.
++    fork; __fork;
++
++    # Cancellation points.
++    close; __close; fcntl; __fcntl; read; __read; write; __write; accept;
++    connect; __connect; recv; recvfrom; recvmsg; send; __send; sendmsg; sendto;
++    fsync; lseek; __lseek; msync; open; __open; pause; tcdrain;
++    system;
++    nanosleep; wait; __wait; waitpid;
++
++    # Hidden entry point (through macros).
++    _pthread_cleanup_push; _pthread_cleanup_pop;
++    _pthread_cleanup_push_defer; _pthread_cleanup_pop_restore;
++
++    pthread_kill_other_threads_np;
++
++    # The error functions.
++    __errno_location; __h_errno_location;
++
++    # Functions which previously have been overwritten.
++    sigwait; sigaction; __sigaction; _exit; _Exit; longjmp; siglongjmp;
++    raise;
++
++    #Additional
++    pthread_attr_destroy; pthread_attr_getdetachstate;
++    pthread_attr_getinheritsched; pthread_attr_getschedparam;
++    pthread_attr_getschedpolicy; pthread_attr_getscope; pthread_attr_init;
++    pthread_attr_setdetachstate; pthread_attr_setinheritsched;
++    pthread_attr_setschedparam; pthread_attr_setschedpolicy;
++    pthread_attr_setscope; pthread_cond_destroy; pthread_cond_init;
++    pthread_condattr_destroy;
++    pthread_condattr_init; pthread_equal; pthread_getschedparam; pthread_self;
++    pthread_setschedparam;
++  }
++
++  GLIBC_2.1 {
++    pthread_create;
++
++    pthread_attr_getguardsize; pthread_attr_setguardsize;
++    pthread_attr_getstackaddr; pthread_attr_setstackaddr;
++    pthread_attr_getstacksize; pthread_attr_setstacksize;
++
++    pthread_mutexattr_gettype; pthread_mutexattr_settype;
++
++    pthread_rwlock_init; pthread_rwlock_destroy;
++    pthread_rwlock_rdlock; pthread_rwlock_wrlock; pthread_rwlock_unlock;
++    pthread_rwlock_tryrdlock; pthread_rwlock_trywrlock;
++
++    pthread_rwlockattr_init; pthread_rwlockattr_destroy;
++    pthread_rwlockattr_getpshared; pthread_rwlockattr_setpshared;
++    pthread_rwlockattr_getkind_np; pthread_rwlockattr_setkind_np;
++
++    pthread_getconcurrency; pthread_setconcurrency;
++
++    # Semaphores.
++    sem_destroy; sem_getvalue; sem_init; sem_post; sem_trywait; sem_wait;
++
++    __libc_current_sigrtmin; __libc_current_sigrtmax;
++    __libc_allocate_rtsig;
++  }
++
++  GLIBC_2.1.1 {
++    sem_close; sem_open; sem_unlink;
++  }
++
++  GLIBC_2.1.2 {
++    __libpthread_version_placeholder;
++  }
++
++  GLIBC_2.2 {
++    pthread_mutexattr_getpshared; pthread_mutexattr_setpshared;
++
++    pthread_condattr_getpshared; pthread_condattr_setpshared;
++
++    # New functions from IEEE Std. 1003.1-2001.
++    pthread_mutex_timedlock;
++
++    pthread_rwlock_timedrdlock; pthread_rwlock_timedwrlock;
++
++    pthread_attr_getstack; pthread_attr_setstack;
++
++    pthread_spin_destroy; pthread_spin_init; pthread_spin_lock;
++    pthread_spin_trylock; pthread_spin_unlock;
++
++    pthread_barrier_init; pthread_barrier_destroy; pthread_barrier_wait;
++    pthread_barrierattr_destroy; pthread_barrierattr_init;
++    pthread_barrierattr_setpshared;
++
++    sem_timedwait;
++
++    pthread_yield;
++
++    pthread_getcpuclockid;
++
++    # Cancellation points.
++    lseek64; open64; __open64; pread; pread64; __pread64; pwrite; pwrite64;
++    __pwrite64;
++
++    # Names used internally.
++    __pthread_rwlock_init; __pthread_rwlock_destroy;
++    __pthread_rwlock_rdlock; __pthread_rwlock_tryrdlock;
++    __pthread_rwlock_wrlock; __pthread_rwlock_trywrlock;
++    __pthread_rwlock_unlock;
++
++    __res_state;
++
++    # Additional
++    pthread_attr_init;
++  }
++
++  GLIBC_2.2.3 {
++    __libpthread_version_placeholder;
++
++    # Additional
++    pthread_getattr_np;
++  }
++
++  GLIBC_2.2.6 {
++    __libpthread_version_placeholder;
++
++    # Additional
++    __nanosleep;
++  }
++
++  GLIBC_2.3.2 {
++    # Changed pthread_cond_t.
++    pthread_cond_init;
++    pthread_cond_wait; pthread_cond_timedwait;
++    pthread_cond_signal; pthread_cond_broadcast;
++
++    # Additional
++    pthread_cond_destroy;
++  }
++
++  GLIBC_2.3.3 {
++    # 1003.1-2001 function accidentally left out in 2.2.
++    pthread_barrierattr_getpshared;
++
++    # Unix CS option.
++    pthread_condattr_getclock; pthread_condattr_setclock;
++
++    # Proposed API extensions.
++    pthread_tryjoin_np; pthread_timedjoin_np;
++
++    # New cancellation cleanup handling.
++    __pthread_register_cancel; __pthread_unregister_cancel;
++    __pthread_register_cancel_defer; __pthread_unregister_cancel_restore;
++    __pthread_unwind_next;
++    __pthread_cleanup_routine;
++
++    # affinity interfaces without size parameter
++    pthread_setaffinity_np;
++    pthread_attr_getaffinity_np;
++
++    # Additional
++    pthread_attr_setaffinity_np; pthread_attr_setstack;
++    pthread_attr_setstacksize; pthread_getaffinity_np;
++  }
++
++  GLIBC_2.3.4 {
++    # New affinity interfaces.
++    pthread_getaffinity_np; pthread_setaffinity_np;
++    pthread_attr_getaffinity_np;
++
++    pthread_setschedprio;
++
++    # Additional
++    pthread_attr_setaffinity_np;
++  }
++
++  GLIBC_2.4 {
++    pthread_mutexattr_getrobust_np; pthread_mutexattr_setrobust_np;
++    pthread_mutex_consistent_np;
++    pthread_mutexattr_getprotocol; pthread_mutexattr_setprotocol;
++    pthread_mutexattr_getprioceiling; pthread_mutexattr_setprioceiling;
++    pthread_mutex_getprioceiling; pthread_mutex_setprioceiling;
++  };
++
++  GLIBC_2.11 {
++    pthread_sigqueue;
++  };
++
++  GLIBC_2.12 {
++    pthread_mutex_consistent; pthread_mutexattr_getrobust;
++    pthread_mutexattr_setrobust;
++
++    pthread_setname_np; pthread_getname_np;
++  };
++
++  GLIBC_2.18 {
++    pthread_getattr_default_np;
++    pthread_setattr_default_np;
++  }
++
++  GLIBC_2.20 {
++  }
++
++  GLIBC_2.22 {
++  }
++
++  # C11 thread symbols.
++  GLIBC_2.28 {
++    thrd_create; thrd_detach; thrd_exit; thrd_join;
++    mtx_init; mtx_lock; mtx_timedlock; mtx_trylock; mtx_unlock; mtx_destroy;
++    call_once; cnd_broadcast; cnd_destroy; cnd_init; cnd_signal;
++    cnd_timedwait; cnd_wait; tss_create; tss_delete; tss_get; tss_set;
++  }
++
++  GLIBC_2.30 {
++    sem_clockwait; pthread_cond_clockwait;
++    pthread_rwlock_clockrdlock; pthread_rwlock_clockwrlock;
++    pthread_mutex_clocklock;
++  }
++
++  GLIBC_2.31 {
++    pthread_clockjoin_np;
++  }
++}
+diff --git a/nptl/old_pthread_cond_destroy.c b/nptl/old_pthread_cond_destroy.c
+index b7cf428653..f6340f36d3 100644
+--- a/nptl/old_pthread_cond_destroy.c
++++ b/nptl/old_pthread_cond_destroy.c
+@@ -20,7 +20,7 @@
+ #include <shlib-compat.h>
+ 
+ 
+-#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_3_2)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_3_2)
+ int
+ __pthread_cond_destroy_2_0 (pthread_cond_2_0_t *cond)
+ {
+@@ -29,6 +29,6 @@ __pthread_cond_destroy_2_0 (pthread_cond_2_0_t *cond)
+ 
+   return 0;
+ }
+-compat_symbol (libc, __pthread_cond_destroy_2_0, pthread_cond_destroy,
++compat_symbol (libpthread, __pthread_cond_destroy_2_0, pthread_cond_destroy,
+ 	       GLIBC_2_0);
+ #endif
+diff --git a/nptl/old_pthread_cond_init.c b/nptl/old_pthread_cond_init.c
+index 01efd33317..2cd57d9ab3 100644
+--- a/nptl/old_pthread_cond_init.c
++++ b/nptl/old_pthread_cond_init.c
+@@ -20,7 +20,7 @@
+ #include <shlib-compat.h>
+ 
+ 
+-#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_3_2)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_3_2)
+ int
+ __pthread_cond_init_2_0 (pthread_cond_2_0_t *cond,
+ 			 const pthread_condattr_t *cond_attr)
+@@ -39,6 +39,6 @@ __pthread_cond_init_2_0 (pthread_cond_2_0_t *cond,
+ 
+   return 0;
+ }
+-compat_symbol (libc, __pthread_cond_init_2_0, pthread_cond_init,
++compat_symbol (libpthread, __pthread_cond_init_2_0, pthread_cond_init,
+ 	       GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_attr_init.c b/nptl/pthread_attr_init.c
+index d55dfa2012..88c7563a78 100644
+--- a/nptl/pthread_attr_init.c
++++ b/nptl/pthread_attr_init.c
+@@ -48,10 +48,10 @@ __pthread_attr_init (pthread_attr_t *attr)
+   return 0;
+ }
+ libc_hidden_def (__pthread_attr_init)
+-versioned_symbol (libc, __pthread_attr_init, pthread_attr_init, GLIBC_2_1);
++versioned_symbol (libpthread, __pthread_attr_init, pthread_attr_init, GLIBC_2_1);
+ 
+ 
+-#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_1)
++#if OTHER_SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
+ int
+ __pthread_attr_init_2_0 (pthread_attr_t *attr)
+ {
+@@ -80,5 +80,5 @@ __pthread_attr_init_2_0 (pthread_attr_t *attr)
+      old attribute structure.  */
+   return 0;
+ }
+-compat_symbol (libc, __pthread_attr_init_2_0, pthread_attr_init, GLIBC_2_0);
++compat_symbol (libpthread, __pthread_attr_init_2_0, pthread_attr_init, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_attr_setaffinity.c b/nptl/pthread_attr_setaffinity.c
+index 96a060c039..670e58c941 100644
+--- a/nptl/pthread_attr_setaffinity.c
++++ b/nptl/pthread_attr_setaffinity.c
+@@ -62,24 +62,24 @@ __pthread_attr_setaffinity_np (pthread_attr_t *attr, size_t cpusetsize,
+   return 0;
+ }
+ libc_hidden_def (__pthread_attr_setaffinity_np)
+-versioned_symbol (libc, __pthread_attr_setaffinity_np,
++versioned_symbol (libpthread, __pthread_attr_setaffinity_np,
+ 		  pthread_attr_setaffinity_np, GLIBC_2_32);
+ 
+ 
+-#if SHLIB_COMPAT (libc, GLIBC_2_3_4, GLIBC_2_32)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_3_4, GLIBC_2_32)
+ /* Compat symbol with the old libc version.  */
+ strong_alias (__pthread_attr_setaffinity_np, __pthread_attr_setaffinity_alias)
+-compat_symbol (libc, __pthread_attr_setaffinity_alias,
++compat_symbol (libpthread, __pthread_attr_setaffinity_alias,
+ 	       pthread_attr_setaffinity_np, GLIBC_2_3_4);
+ #endif
+ 
+-#if SHLIB_COMPAT (libc, GLIBC_2_3_3, GLIBC_2_3_4)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_3_3, GLIBC_2_3_4)
+ int
+ __pthread_attr_setaffinity_old (pthread_attr_t *attr, cpu_set_t *cpuset)
+ {
+   /* The old interface by default assumed a 1024 processor bitmap.  */
+   return __pthread_attr_setaffinity_np (attr, 128, cpuset);
+ }
+-compat_symbol (libc, __pthread_attr_setaffinity_old,
++compat_symbol (libpthread, __pthread_attr_setaffinity_old,
+ 	       pthread_attr_setaffinity_np, GLIBC_2_3_3);
+ #endif
+diff --git a/nptl/pthread_attr_setstack.c b/nptl/pthread_attr_setstack.c
+index 6eff8bc999..95de1d1f34 100644
+--- a/nptl/pthread_attr_setstack.c
++++ b/nptl/pthread_attr_setstack.c
+@@ -53,10 +53,10 @@ __pthread_attr_setstack (pthread_attr_t *attr, void *stackaddr,
+ 
+   return 0;
+ }
+-versioned_symbol (libc, __pthread_attr_setstack, pthread_attr_setstack,
++versioned_symbol (libpthread, __pthread_attr_setstack, pthread_attr_setstack,
+ 		  GLIBC_2_34);
+ 
+-#if PTHREAD_STACK_MIN == 16384
++#if PTHREAD_STACK_MIN == 16384 && !defined(COMP_CHANGED_PTHREAD_STACK_MIN)
+ # if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_2, GLIBC_2_34)
+ compat_symbol (libpthread, __pthread_attr_setstack, pthread_attr_setstack,
+ 	       GLIBC_2_2);
+diff --git a/nptl/pthread_attr_setstacksize.c b/nptl/pthread_attr_setstacksize.c
+index 75eb3a87da..91f89fe2e9 100644
+--- a/nptl/pthread_attr_setstacksize.c
++++ b/nptl/pthread_attr_setstacksize.c
+@@ -45,7 +45,7 @@ versioned_symbol (libc, __pthread_attr_setstacksize,
+ 		  pthread_attr_setstacksize, GLIBC_2_34);
+ 
+ 
+-#if PTHREAD_STACK_MIN == 16384
++#if PTHREAD_STACK_MIN == 16384 && !defined(COMP_CHANGED_PTHREAD_STACK_MIN)
+ # if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_1, GLIBC_2_34)
+ compat_symbol (libpthread, __pthread_attr_setstacksize,
+ 	       pthread_attr_setstacksize, GLIBC_2_1);
+diff --git a/nptl/pthread_cond_broadcast.c b/nptl/pthread_cond_broadcast.c
+index 7409958394..008eeadb1c 100644
+--- a/nptl/pthread_cond_broadcast.c
++++ b/nptl/pthread_cond_broadcast.c
+@@ -86,7 +86,7 @@ ___pthread_cond_broadcast (pthread_cond_t *cond)
+ 
+   return 0;
+ }
+-versioned_symbol (libc, ___pthread_cond_broadcast,
++versioned_symbol (libpthread, ___pthread_cond_broadcast,
+ 		  pthread_cond_broadcast, GLIBC_2_3_2);
+ libc_hidden_ver (___pthread_cond_broadcast, __pthread_cond_broadcast)
+ #ifndef SHARED
+diff --git a/nptl/pthread_cond_destroy.c b/nptl/pthread_cond_destroy.c
+index 98c12c831b..b014acc30e 100644
+--- a/nptl/pthread_cond_destroy.c
++++ b/nptl/pthread_cond_destroy.c
+@@ -58,5 +58,5 @@ __pthread_cond_destroy (pthread_cond_t *cond)
+   return 0;
+ }
+ libc_hidden_def (__pthread_cond_destroy)
+-versioned_symbol (libc, __pthread_cond_destroy,
++versioned_symbol (libpthread, __pthread_cond_destroy,
+ 		  pthread_cond_destroy, GLIBC_2_3_2);
+diff --git a/nptl/pthread_cond_init.c b/nptl/pthread_cond_init.c
+index 288299577b..f73d0ea66c 100644
+--- a/nptl/pthread_cond_init.c
++++ b/nptl/pthread_cond_init.c
+@@ -49,5 +49,5 @@ __pthread_cond_init (pthread_cond_t *cond, const pthread_condattr_t *cond_attr)
+   return 0;
+ }
+ libc_hidden_def (__pthread_cond_init)
+-versioned_symbol (libc, __pthread_cond_init,
++versioned_symbol (libpthread, __pthread_cond_init,
+ 		  pthread_cond_init, GLIBC_2_3_2);
+diff --git a/nptl/pthread_cond_wait.c b/nptl/pthread_cond_wait.c
+index 806c432d13..cff09c8595 100644
+--- a/nptl/pthread_cond_wait.c
++++ b/nptl/pthread_cond_wait.c
+@@ -618,7 +618,7 @@ ___pthread_cond_wait (pthread_cond_t *cond, pthread_mutex_t *mutex)
+   return __pthread_cond_wait_common (cond, mutex, 0, NULL);
+ }
+ 
+-versioned_symbol (libc, ___pthread_cond_wait, pthread_cond_wait,
++versioned_symbol (libpthread, ___pthread_cond_wait, pthread_cond_wait,
+ 		  GLIBC_2_3_2);
+ libc_hidden_ver (___pthread_cond_wait, __pthread_cond_wait)
+ #ifndef SHARED
+@@ -658,7 +658,7 @@ ___pthread_cond_timedwait (pthread_cond_t *cond, pthread_mutex_t *mutex,
+   return __pthread_cond_timedwait64 (cond, mutex, &ts64);
+ }
+ #endif /* __TIMESIZE == 64 */
+-versioned_symbol (libc, ___pthread_cond_timedwait,
++versioned_symbol (libpthread, ___pthread_cond_timedwait,
+ 		  pthread_cond_timedwait, GLIBC_2_3_2);
+ libc_hidden_ver (___pthread_cond_timedwait, __pthread_cond_timedwait)
+ #ifndef SHARED
+diff --git a/nptl/pthread_detach.c b/nptl/pthread_detach.c
+index 741c3c5884..f911be77a9 100644
+--- a/nptl/pthread_detach.c
++++ b/nptl/pthread_detach.c
+@@ -59,5 +59,5 @@ strong_alias (___pthread_detach, __pthread_detach)
+ #endif
+ 
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_34)
+-compat_symbol (libc, ___pthread_detach, pthread_detach, GLIBC_2_0);
++compat_symbol (libpthread, ___pthread_detach, pthread_detach, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_getaffinity.c b/nptl/pthread_getaffinity.c
+index b9483537b0..e20271835a 100644
+--- a/nptl/pthread_getaffinity.c
++++ b/nptl/pthread_getaffinity.c
+@@ -41,22 +41,22 @@ __pthread_getaffinity_np (pthread_t th, size_t cpusetsize, cpu_set_t *cpuset)
+   return 0;
+ }
+ libc_hidden_def (__pthread_getaffinity_np)
+-versioned_symbol (libc, __pthread_getaffinity_np, pthread_getaffinity_np,
++versioned_symbol (libpthread, __pthread_getaffinity_np, pthread_getaffinity_np,
+ 		  GLIBC_2_32);
+ 
+-#if SHLIB_COMPAT (libc, GLIBC_2_3_4, GLIBC_2_32)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_3_4, GLIBC_2_32)
+ strong_alias (__pthread_getaffinity_np, __pthread_getaffinity_alias)
+-compat_symbol (libc, __pthread_getaffinity_alias, pthread_getaffinity_np,
++compat_symbol (libpthread, __pthread_getaffinity_alias, pthread_getaffinity_np,
+ 	       GLIBC_2_3_4);
+ #endif
+ 
+-#if SHLIB_COMPAT (libc, GLIBC_2_3_3, GLIBC_2_3_4)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_3_3, GLIBC_2_3_4)
+ int
+ __pthread_getaffinity_old (pthread_t th, cpu_set_t *cpuset)
+ {
+   /* The old interface by default assumed a 1024 processor bitmap.  */
+   return __pthread_getaffinity_np (th, 128, cpuset);
+ }
+-compat_symbol (libc, __pthread_getaffinity_old, pthread_getaffinity_np,
++compat_symbol (libpthread, __pthread_getaffinity_old, pthread_getaffinity_np,
+ 	       GLIBC_2_3_3);
+ #endif
+diff --git a/nptl/pthread_getattr_np.c b/nptl/pthread_getattr_np.c
+index 65647bda57..a740355c93 100644
+--- a/nptl/pthread_getattr_np.c
++++ b/nptl/pthread_getattr_np.c
+@@ -205,10 +205,10 @@ __pthread_getattr_np (pthread_t thread_id, pthread_attr_t *attr)
+ 
+   return ret;
+ }
+-versioned_symbol (libc, __pthread_getattr_np, pthread_getattr_np, GLIBC_2_32);
++versioned_symbol (libpthread, __pthread_getattr_np, pthread_getattr_np, GLIBC_2_32);
+ 
+-#if SHLIB_COMPAT (libc, GLIBC_2_2_3, GLIBC_2_32)
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_2_3, GLIBC_2_32)
+ strong_alias (__pthread_getattr_np, __pthread_getattr_np_alias)
+-compat_symbol (libc, __pthread_getattr_np_alias,
++compat_symbol (libpthread, __pthread_getattr_np_alias,
+ 	       pthread_getattr_np, GLIBC_2_2_3);
+ #endif
+diff --git a/nptl/pthread_join.c b/nptl/pthread_join.c
+index 2f661039a7..37f16405a5 100644
+--- a/nptl/pthread_join.c
++++ b/nptl/pthread_join.c
+@@ -24,12 +24,12 @@ ___pthread_join (pthread_t threadid, void **thread_return)
+   return __pthread_clockjoin_ex (threadid, thread_return, 0 /* Ignored */,
+ 				 NULL, true);
+ }
+-versioned_symbol (libc, ___pthread_join, pthread_join, GLIBC_2_34);
++versioned_symbol (libpthread, ___pthread_join, pthread_join, GLIBC_2_34);
+ libc_hidden_ver (___pthread_join, __pthread_join)
+ #ifndef SHARED
+ strong_alias (___pthread_join, __pthread_join)
+ #endif
+ 
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_34)
+-compat_symbol (libc, ___pthread_join, pthread_join, GLIBC_2_0);
++compat_symbol (libpthread, ___pthread_join, pthread_join, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_kill.c b/nptl/pthread_kill.c
+index 44e45a4e23..c5d2354fe1 100644
+--- a/nptl/pthread_kill.c
++++ b/nptl/pthread_kill.c
+@@ -93,7 +93,7 @@ __pthread_kill (pthread_t threadid, int signo)
+    avoid the symbol version if it ends up being used on ld.so.  */
+ #if !IS_IN(rtld)
+ libc_hidden_def (__pthread_kill)
+-versioned_symbol (libc, __pthread_kill, pthread_kill, GLIBC_2_34);
++versioned_symbol (libpthread, __pthread_kill, pthread_kill, GLIBC_2_34);
+ 
+ # if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_34)
+ /* Variant which returns ESRCH in the no-TID case, for backwards
+@@ -107,6 +107,6 @@ __pthread_kill_esrch (pthread_t threadid, int signo)
+ 
+   return __pthread_kill_implementation (threadid, signo, ESRCH);
+ }
+-compat_symbol (libc, __pthread_kill_esrch, pthread_kill, GLIBC_2_0);
++compat_symbol (libpthread, __pthread_kill_esrch, pthread_kill, GLIBC_2_0);
+ # endif
+ #endif
+diff --git a/nptl/pthread_mutex_destroy.c b/nptl/pthread_mutex_destroy.c
+index dbb63600f6..ae79c36dfb 100644
+--- a/nptl/pthread_mutex_destroy.c
++++ b/nptl/pthread_mutex_destroy.c
+@@ -40,7 +40,7 @@ ___pthread_mutex_destroy (pthread_mutex_t *mutex)
+ 
+   return 0;
+ }
+-versioned_symbol (libc, ___pthread_mutex_destroy, pthread_mutex_destroy,
++versioned_symbol (libpthread, ___pthread_mutex_destroy, pthread_mutex_destroy,
+                   GLIBC_2_0);
+ libc_hidden_ver (___pthread_mutex_destroy, __pthread_mutex_destroy)
+ #ifndef SHARED
+diff --git a/nptl/pthread_mutexattr_destroy.c b/nptl/pthread_mutexattr_destroy.c
+index 89ce6cad62..c5890eddf3 100644
+--- a/nptl/pthread_mutexattr_destroy.c
++++ b/nptl/pthread_mutexattr_destroy.c
+@@ -23,11 +23,11 @@ ___pthread_mutexattr_destroy (pthread_mutexattr_t *attr)
+ {
+   return 0;
+ }
+-versioned_symbol (libc, ___pthread_mutexattr_destroy,
++versioned_symbol (libpthread, ___pthread_mutexattr_destroy,
+                   pthread_mutexattr_destroy, GLIBC_2_34);
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_34)
+-compat_symbol (libc, ___pthread_mutexattr_destroy,
++compat_symbol (libpthread, ___pthread_mutexattr_destroy,
+                pthread_mutexattr_destroy, GLIBC_2_0);
+-compat_symbol (libc, ___pthread_mutexattr_destroy,
++compat_symbol (libpthread, ___pthread_mutexattr_destroy,
+                __pthread_mutexattr_destroy, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_setattr_default_np.c b/nptl/pthread_setattr_default_np.c
+index 27b87b5711..02122b5b3a 100644
+--- a/nptl/pthread_setattr_default_np.c
++++ b/nptl/pthread_setattr_default_np.c
+@@ -81,10 +81,10 @@ __pthread_setattr_default_np (const pthread_attr_t *in)
+   lll_unlock (__default_pthread_attr_lock, LLL_PRIVATE);
+   return ret;
+ }
+-versioned_symbol (libc, __pthread_setattr_default_np,
++versioned_symbol (libpthread, __pthread_setattr_default_np,
+ 		  pthread_setattr_default_np, GLIBC_2_34);
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_18, GLIBC_2_34)
+-compat_symbol (libc, __pthread_setattr_default_np,
++compat_symbol (libpthread, __pthread_setattr_default_np,
+ 	       pthread_setattr_default_np, GLIBC_2_18);
+ #endif
+ 
+diff --git a/nptl/pthread_sigmask.c b/nptl/pthread_sigmask.c
+index 409f4467e8..15bad2e984 100644
+--- a/nptl/pthread_sigmask.c
++++ b/nptl/pthread_sigmask.c
+@@ -46,8 +46,8 @@ __pthread_sigmask (int how, const sigset_t *newmask, sigset_t *oldmask)
+ }
+ libc_hidden_def (__pthread_sigmask)
+ 
+-versioned_symbol (libc, __pthread_sigmask, pthread_sigmask, GLIBC_2_32);
+-#if SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_32)
++versioned_symbol (libpthread, __pthread_sigmask, pthread_sigmask, GLIBC_2_32);
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_32)
+ strong_alias (__pthread_sigmask, __pthread_sigmask_2);
+-compat_symbol (libc, __pthread_sigmask_2, pthread_sigmask, GLIBC_2_0);
++compat_symbol (libpthread, __pthread_sigmask_2, pthread_sigmask, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_testcancel.c b/nptl/pthread_testcancel.c
+index 38b5a2d4bc..0246b7323f 100644
+--- a/nptl/pthread_testcancel.c
++++ b/nptl/pthread_testcancel.c
+@@ -30,12 +30,12 @@ ___pthread_testcancel (void)
+       __do_cancel ();
+     }
+ }
+-versioned_symbol (libc, ___pthread_testcancel, pthread_testcancel, GLIBC_2_34);
++versioned_symbol (libpthread, ___pthread_testcancel, pthread_testcancel, GLIBC_2_34);
+ libc_hidden_ver (___pthread_testcancel, __pthread_testcancel)
+ #ifndef SHARED
+ strong_alias (___pthread_testcancel, __pthread_testcancel)
+ #endif
+ 
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_34)
+-compat_symbol (libc, ___pthread_testcancel, pthread_testcancel, GLIBC_2_0);
++compat_symbol (libpthread, ___pthread_testcancel, pthread_testcancel, GLIBC_2_0);
+ #endif
+diff --git a/nptl/pthread_tryjoin.c b/nptl/pthread_tryjoin.c
+index 97137c0702..dde45f55ca 100644
+--- a/nptl/pthread_tryjoin.c
++++ b/nptl/pthread_tryjoin.c
+@@ -31,8 +31,8 @@ __pthread_tryjoin_np (pthread_t threadid, void **thread_return)
+   return __pthread_clockjoin_ex (threadid, thread_return, 0 /* Ignored */,
+ 				 NULL, false);
+ }
+-versioned_symbol (libc, __pthread_tryjoin_np, pthread_tryjoin_np, GLIBC_2_34);
++versioned_symbol (libpthread, __pthread_tryjoin_np, pthread_tryjoin_np, GLIBC_2_34);
+ 
+ #if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_3_3, GLIBC_2_34)
+-compat_symbol (libc, __pthread_tryjoin_np, pthread_tryjoin_np, GLIBC_2_3_3);
++compat_symbol (libpthread, __pthread_tryjoin_np, pthread_tryjoin_np, GLIBC_2_3_3);
+ #endif
+diff --git a/scripts/firstversions.awk b/scripts/firstversions.awk
+index ccde4b59b4..16008b0858 100644
+--- a/scripts/firstversions.awk
++++ b/scripts/firstversions.awk
+@@ -27,9 +27,16 @@ function vers_compare (v1, v2)
+ }
+ 
+ NF > 2 && $2 == ":" {
+-  for (i = 0; i <= NF - 3; ++i)
++  for (i = 0; i <= NF - 3; ++i){
+     firstversion[$1, i] = $(3 + i);
++    if ( $1 == "libpthread" ) {
++      firstversion["libpthread_in_libc", i] = $(3 + i);
++    }
++  }
+   idx[$1] = 0;
++  if ( $1 == "libpthread" ) {
++    idx["libpthread_in_libc"] = 0;
++  }
+   next;
+ }
+ 
+diff --git a/scripts/versions.awk b/scripts/versions.awk
+index eeb7a10654..6b30e74561 100644
+--- a/scripts/versions.awk
++++ b/scripts/versions.awk
+@@ -89,7 +89,7 @@ function ord(c) {
+   sortver=actver
+   # Ensure GLIBC_ versions come always first
+   sub(/^GLIBC_/," GLIBC_",sortver)
+-  printf("%s %s %s\n", actlib, sortver, $0) | sort;
++  printf("%s %s %s\n", actlib == "libpthread_in_libc" ? "libc" : actlib, sortver, $0) | sort;
+ }
+ 
+ # Some targets do not set the ABI baseline for libdl.  As a result,
+diff --git a/sunrpc/Makefile b/sunrpc/Makefile
+index ec2ea04ca9..015be5be3f 100644
+--- a/sunrpc/Makefile
++++ b/sunrpc/Makefile
+@@ -22,7 +22,7 @@ subdir	:= sunrpc
+ 
+ include ../Makeconfig
+ 
+-ifdef have-GLIBC_2.31
++#ifdef have-GLIBC_2.31
+ 
+ # The code in this subdirectory is taken from Sun's RPCSRC-4.0
+ # distribution with some additional changes from the TI-RPC package
+@@ -62,7 +62,7 @@ routines := auth_none authuxprot clnt_raw clnt_simp \
+ 	    rpc_gethostbyname
+ # We only add the RPC for compatibility to libc.so.
+ shared-only-routines = $(routines)
+-endif
++#endif
+ 
+ tests = tst-xdrmem tst-xdrmem2 test-rpcent tst-udp-error tst-udp-timeout \
+   tst-udp-nonblocking tst-bug22542 tst-bug28768
+diff --git a/sysdeps/loongarch/nptl/pthread_sigmask.c b/sysdeps/loongarch/nptl/pthread_sigmask.c
+new file mode 100644
+index 0000000000..707787a67a
+--- /dev/null
++++ b/sysdeps/loongarch/nptl/pthread_sigmask.c
+@@ -0,0 +1,73 @@
++/* Copyright (C) 2002-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <signal.h>
++#include <pthreadP.h>
++#include <sysdep.h>
++#include <shlib-compat.h>
++
++int
++__pthread_sigmask (int how, const sigset_t *newmask, sigset_t *oldmask)
++{
++  sigset_t local_newmask;
++
++  /* The only thing we have to make sure here is that SIGCANCEL and
++     SIGSETXID is not blocked.  */
++  if (newmask != NULL
++      && (__glibc_unlikely (__sigismember (newmask, SIGCANCEL))
++         || __glibc_unlikely (__sigismember (newmask, SIGSETXID))))
++    {
++      local_newmask = *newmask;
++      clear_internal_signals (&local_newmask);
++      newmask = &local_newmask;
++    }
++
++  /* We know that realtime signals are available if NPTL is used.  */
++  int result = INTERNAL_SYSCALL_CALL (rt_sigprocmask, how, newmask,
++				      oldmask, __NSIG_BYTES);
++
++  return (INTERNAL_SYSCALL_ERROR_P (result)
++	  ? INTERNAL_SYSCALL_ERRNO (result)
++	  : 0);
++}
++libc_hidden_def (__pthread_sigmask)
++
++versioned_symbol (libc, __pthread_sigmask, pthread_sigmask, GLIBC_2_36);
++
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_36)
++
++#include<sysdeps/unix/sysv/linux/loongarch/ow_sigop.h>
++
++int
++__ow___pthread_sigmask (int how, const sigset_t *newmask, sigset_t *oldmask)
++{
++  int rc = __pthread_sigmask (how, newmask, oldmask);
++  if (rc >= 0 && oldmask != NULL){
++    __ow_clear_unused_bits(oldmask);
++  }
++  return rc;
++}
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_32, GLIBC_2_36)
++compat_symbol (libpthread, __ow___pthread_sigmask, pthread_sigmask, GLIBC_2_32);
++#endif
++
++#if OTHER_SHLIB_COMPAT (libpthread, GLIBC_2_0, GLIBC_2_32)
++strong_alias (__ow___pthread_sigmask, __ow___pthread_sigmask_2);
++compat_symbol (libpthread, __ow___pthread_sigmask_2, pthread_sigmask, GLIBC_2_0);
++#endif
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/Makefile b/sysdeps/unix/sysv/linux/loongarch/Makefile
+index c84a1762ed..4d1d5d0e6d 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/Makefile
++++ b/sysdeps/unix/sysv/linux/loongarch/Makefile
+@@ -1,5 +1,28 @@
+ ifeq ($(subdir),stdlib)
+-gen-as-const-headers += ucontext_i.sym
++gen-as-const-headers += ucontext_i.sym ow_ucontext_i.sym
++sysdep_routines += \
++  ow_swapcontext \
++  ow_makecontext \
++  ow_getcontext \
++  ow_setcontext \
++  # sysdep_routines
++endif
++
++ifeq ($(subdir),signal)
++sysdep_routines += \
++  ow_sigisempty \
++  ow_sigismem \
++  ow_sigaddset \
++  ow_sigfillset \
++  ow_sigempty \
++  ow_sigdelset \
++  ow_sigandset \
++  ow_sigorset \
++  # sysdep_routines
++endif
++
++ifeq ($(subdir),nptl)
++sysdep-CFLAGS += -DCOMP_CHANGED_PTHREAD_STACK_MIN
+ endif
+ 
+ abi-variants := lp64s lp64d
+diff --git a/sysdeps/unix/sysv/linux/loongarch/Versions b/sysdeps/unix/sysv/linux/loongarch/Versions
+new file mode 100644
+index 0000000000..6b3dd0d12e
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/Versions
+@@ -0,0 +1,36 @@
++libc {
++  GLIBC_2.36 {
++    __ppoll_chk;
++    signalfd;
++    epoll_pwait2;
++    epoll_pwait;
++    pselect;
++    ppoll;
++    posix_spawnattr_getsigmask;
++    posix_spawnattr_getsigdefault;
++    posix_spawnattr_setsigmask;
++    posix_spawnattr_setsigdefault;
++    sigwaitinfo;
++    sigorset;
++    sigandset;
++    sigisemptyset;
++    sigismember;
++    sigaddset;
++    sigfillset;
++    sigemptyset;
++    sigdelset;
++    sigwait;
++    sigtimedwait;
++    __sigsuspend;
++    sigsuspend;
++    sigpending;
++    pthread_sigmask;
++    sigprocmask;
++    sigaction;
++    __sigaction;
++    swapcontext;
++    setcontext;
++    makecontext;
++    getcontext;
++  }
++}
+diff --git a/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h b/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h
+new file mode 100644
+index 0000000000..522f084657
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h
+@@ -0,0 +1,6 @@
++#include<sysdeps/unix/sysv/linux/bits/signum-arch.h>
++
++#ifdef LA_OW_COMPACT
++#undef __SIGRTMAX
++#define __SIGRTMAX 128
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/brk.c b/sysdeps/unix/sysv/linux/loongarch/brk.c
+new file mode 100644
+index 0000000000..82c285f452
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/brk.c
+@@ -0,0 +1,9 @@
++#include <shlib-compat.h>
++
++#if LIB_COMPAT(libc, GLIBC_2_27, GLIBC_2_36)
++#include <sysdep.h>
++#undef HAVE_INTERNAL_BRK_ADDR_SYMBOL
++#define HAVE_INTERNAL_BRK_ADDR_SYMBOL 1
++#endif
++
++#include <sysdeps/unix/sysv/linux/brk.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/clone-internal.c b/sysdeps/unix/sysv/linux/loongarch/clone-internal.c
+new file mode 100644
+index 0000000000..e01ce980bc
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/clone-internal.c
+@@ -0,0 +1,8 @@
++#include <shlib-compat.h>
++
++#if LIB_COMPAT(libc, GLIBC_2_27, GLIBC_2_36)
++#include <sysdep.h>
++#undef HAVE_CLONE3_WRAPPER
++#endif
++
++#include <sysdeps/unix/sysv/linux/clone-internal.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/epoll_pwait.c b/sysdeps/unix/sysv/linux/loongarch/epoll_pwait.c
+new file mode 100644
+index 0000000000..5810355b7e
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/epoll_pwait.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/epoll_pwait.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/epoll_pwait2.c b/sysdeps/unix/sysv/linux/loongarch/epoll_pwait2.c
+new file mode 100644
+index 0000000000..1c7586a4b5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/epoll_pwait2.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/epoll_pwait2.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/fxstat64.c b/sysdeps/unix/sysv/linux/loongarch/fxstat64.c
+new file mode 100644
+index 0000000000..f7174ea844
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/fxstat64.c
+@@ -0,0 +1,67 @@
++/* fxstat64 using Linux fstat64/statx system call.
++   Copyright (C) 1997-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#define __fxstat __redirect___fxstat
++#include <sys/stat.h>
++#undef __fxstat
++#include <fcntl.h>
++#include <kernel_stat.h>
++#include <sysdep.h>
++#include <xstatconv.h>
++#include <statx_cp.h>
++#include <shlib-compat.h>
++#include "ow_syscall_nr.h"
++
++#if LIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_33)
++
++/* Get information about the file FD in BUF.  */
++
++int
++___fxstat64 (int vers, int fd, struct stat64 *buf)
++{
++  /* New 32-bit kABIs with only 64-bit time_t support, e.g. arc, riscv32.  */
++  struct statx tmp;
++  int r = INLINE_SYSCALL_CALL (statx, fd, "", AT_EMPTY_PATH,
++			       STATX_BASIC_STATS, &tmp);
++  if (r == 0) {
++    __cp_stat64_statx (buf, &tmp);
++    return r;
++  } else if (errno != ENOSYS) {
++    return r;
++  }
++#if defined __NR_fstat
++ if (vers == _STAT_VER_KERNEL || vers == _STAT_VER_LINUX)
++    return INLINE_SYSCALL_CALL (fstat, fd, buf);
++  return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
++#endif
++  return r;
++}
++
++#if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
++versioned_symbol (libc, ___fxstat64, __fxstat64, GLIBC_2_2);
++strong_alias (___fxstat64, __old__fxstat64)
++compat_symbol (libc, __old__fxstat64, __fxstat64, GLIBC_2_1);
++#else
++strong_alias (___fxstat64, __fxstat64)
++#endif
++
++#if XSTAT_IS_XSTAT64
++strong_alias (___fxstat64, __fxstat)
++#endif
++
++#endif /* LIB_COMPAT  */
+diff --git a/sysdeps/unix/sysv/linux/loongarch/fxstatat64.c b/sysdeps/unix/sysv/linux/loongarch/fxstatat64.c
+new file mode 100644
+index 0000000000..720f12a084
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/fxstatat64.c
+@@ -0,0 +1,61 @@
++/* fxstatat64 used on fstatat64, Linux implementation.
++   Copyright (C) 2005-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#define __fxstatat __redirect___fxstatat
++#include <sys/stat.h>
++#undef __fxstatat
++#include <fcntl.h>
++#include <kernel_stat.h>
++#include <sysdep.h>
++#include <xstatconv.h>
++#include <statx_cp.h>
++#include <shlib-compat.h>
++#include "ow_syscall_nr.h"
++
++#if LIB_COMPAT(libc, GLIBC_2_4, GLIBC_2_33)
++
++/* Get information about the file FD in BUF.  */
++
++int
++__fxstatat64 (int vers, int fd, const char *file, struct stat64 *st, int flag)
++{
++  /* New 32-bit kABIs with only 64-bit time_t support, e.g. arc, riscv32.  */
++  if (vers == _STAT_VER_KERNEL)
++    {
++      struct statx tmp;
++      int r = INLINE_SYSCALL_CALL (statx, fd, file, AT_NO_AUTOMOUNT | flag,
++				   STATX_BASIC_STATS, &tmp);
++      if (r == 0) {
++	      __cp_stat64_statx (st, &tmp);
++        return r;
++      }else if (errno != ENOSYS){
++        return r;
++      }
++#if defined __NR_newfstatat
++    return INLINE_SYSCALL_CALL (newfstatat, fd, file, st, flag);
++#endif
++      return r;
++    }
++  return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
++}
++
++#if XSTAT_IS_XSTAT64
++strong_alias (__fxstatat64, __fxstatat)
++#endif
++
++#endif /* LIB_COMPAT(libc, GLIBC_2_4, GLIBC_2_33)  */
+diff --git a/sysdeps/unix/sysv/linux/loongarch/getcontext.S b/sysdeps/unix/sysv/linux/loongarch/getcontext.S
+index d04e33c001..88f4aa92e2 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/getcontext.S
++++ b/sysdeps/unix/sysv/linux/loongarch/getcontext.S
+@@ -16,6 +16,7 @@
+    License along with the GNU C Library.  If not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
++#include <shlib-compat.h>
+ #include "ucontext-macros.h"
+ 
+ /* int getcontext (ucontext_t *ucp) */
+@@ -56,4 +57,4 @@ LEAF (__getcontext)
+ 
+ PSEUDO_END (__getcontext)
+ 
+-weak_alias (__getcontext, getcontext)
++versioned_symbol (libc, __getcontext, getcontext, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/lxstat64.c b/sysdeps/unix/sysv/linux/loongarch/lxstat64.c
+new file mode 100644
+index 0000000000..ab561ce04e
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/lxstat64.c
+@@ -0,0 +1,77 @@
++/* lxstat64 using Linux lstat64 system call.
++   Copyright (C) 1991-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#define __lxstat __redirect___lxstat
++#include <sys/stat.h>
++#undef __lxstat
++#include <fcntl.h>
++#include <kernel_stat.h>
++#include <sysdep.h>
++#include <xstatconv.h>
++#include <statx_cp.h>
++#include <shlib-compat.h>
++#include "ow_syscall_nr.h"
++
++#if LIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_33)
++
++/* Get information about the file NAME in BUF.  */
++
++int
++___lxstat64 (int vers, const char *name, struct stat64 *buf)
++{
++  /* New kABIs which uses generic 64-bit Linux ABI, e.g. aarch64, riscv64.  */
++  if (vers == _STAT_VER_KERNEL)
++    return INLINE_SYSCALL_CALL (newfstatat, AT_FDCWD, name, buf,
++				AT_SYMLINK_NOFOLLOW);
++
++  /* New 32-bit kABIs with only 64-bit time_t support, e.g. arc, riscv32.  */
++  if (vers == _STAT_VER_KERNEL)
++    {
++      struct statx tmp;
++      int r = INLINE_SYSCALL_CALL (statx, AT_FDCWD, name,
++				   AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW,
++				   STATX_BASIC_STATS, &tmp);
++      if (r == 0) {
++	      __cp_stat64_statx (buf, &tmp);
++        return r;
++      }else if(errno != ENOSYS){
++        return r;
++      }
++#if defined __NR_newfstatat
++      return INLINE_SYSCALL_CALL (newfstatat, AT_FDCWD, name, buf,
++          AT_SYMLINK_NOFOLLOW);
++#endif
++      return r;
++     }
++
++  return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
++}
++
++#if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
++versioned_symbol (libc, ___lxstat64, __lxstat64, GLIBC_2_2);
++strong_alias (___lxstat64, __old__lxstat64)
++compat_symbol (libc, __old__lxstat64, __lxstat64, GLIBC_2_1);
++#else
++strong_alias (___lxstat64, __lxstat64);
++#endif
++
++#if XSTAT_IS_XSTAT64
++strong_alias (___lxstat64,__lxstat)
++#endif
++
++#endif /* LIB_COMPAT  */
+diff --git a/sysdeps/unix/sysv/linux/loongarch/makecontext.c b/sysdeps/unix/sysv/linux/loongarch/makecontext.c
+index a17f6ccc51..b17fdc5dc0 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/makecontext.c
++++ b/sysdeps/unix/sysv/linux/loongarch/makecontext.c
+@@ -17,6 +17,7 @@
+    License along with the GNU C Library.  If not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
++#include <shlib-compat.h>
+ #include <sysdep.h>
+ #include <sys/asm.h>
+ #include <sys/ucontext.h>
+@@ -78,4 +79,4 @@ __makecontext (ucontext_t *ucp, void (*func) (void), int argc, long int a0,
+     }
+ }
+ 
+-weak_alias (__makecontext, makecontext)
++versioned_symbol (libc, __makecontext, makecontext, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_getcontext.S b/sysdeps/unix/sysv/linux/loongarch/ow_getcontext.S
+new file mode 100644
+index 0000000000..24ae4244aa
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_getcontext.S
+@@ -0,0 +1,13 @@
++#include <shlib-compat.h>
++#include "ow_ucontext-macros.h"
++
++#if SHLIB_COMPAT (libc, GLIBC_2_1, GLIBC_2_36)
++#undef versioned_symbol
++#define versioned_symbol(a, b, c, d)
++#define __getcontext __ow___getcontext
++#include "getcontext.S"
++
++#undef __getcontext
++compat_symbol (libc, __ow___getcontext, getcontext, GLIBC_2_1);
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_makecontext.c b/sysdeps/unix/sysv/linux/loongarch/ow_makecontext.c
+new file mode 100644
+index 0000000000..d2effdc952
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_makecontext.c
+@@ -0,0 +1,17 @@
++#include <shlib-compat.h>
++
++#if SHLIB_COMPAT (libc, GLIBC_2_1, GLIBC_2_36)
++#include <sys/ucontext.h>
++#include "ow_ucontext.h"
++
++#undef versioned_symbol
++#define versioned_symbol(a, b, c, d)
++#define ucontext_t __ow_ucontext_t
++#define __makecontext __ow___makecontext
++#define __start_context __ow___start_context
++#include "makecontext.c"
++
++#undef __makecontext
++compat_symbol (libc, __ow___makecontext, makecontext, GLIBC_2_1);
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_setcontext.S b/sysdeps/unix/sysv/linux/loongarch/ow_setcontext.S
+new file mode 100644
+index 0000000000..906e28fb78
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_setcontext.S
+@@ -0,0 +1,14 @@
++#include <shlib-compat.h>
++#include "ow_ucontext-macros.h"
++
++#if SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_36)
++#undef versioned_symbol
++#define versioned_symbol(a, b, c, d)
++#define __setcontext __ow___setcontext
++#define __start_context __ow___start_context
++#include "setcontext.S"
++
++#undef __setcontext
++compat_symbol (libc, __ow___setcontext, setcontext, GLIBC_2_0);
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigaddset.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigaddset.c
+new file mode 100644
+index 0000000000..0bc18cdaa1
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigaddset.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigaddset __ow_sigaddset
++#include<signal/sigaddset.c>
++
++#undef sigaddset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigaddset, sigaddset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigandset.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigandset.c
+new file mode 100644
+index 0000000000..b28cfc23f1
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigandset.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigandset __ow_sigandset
++#include<signal/sigandset.c>
++
++#undef sigandset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigandset, sigandset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigdelset.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigdelset.c
+new file mode 100644
+index 0000000000..d29dc88570
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigdelset.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigdelset __ow_sigdelset
++#include<signal/sigdelset.c>
++
++#undef sigdelset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigdelset, sigdelset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigempty.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigempty.c
+new file mode 100644
+index 0000000000..67d3176edf
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigempty.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigemptyset __ow_sigemptyset
++#include<signal/sigempty.c>
++
++#undef sigemptyset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigemptyset, sigemptyset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigfillset.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigfillset.c
+new file mode 100644
+index 0000000000..3d41cbf55c
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigfillset.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigfillset __ow_sigfillset
++#include<signal/sigfillset.c>
++
++#undef sigfillset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigfillset, sigfillset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigisempty.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigisempty.c
+new file mode 100644
+index 0000000000..b30cb1a286
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigisempty.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigisemptyset __ow_sigisemptyset
++#include<signal/sigisempty.c>
++
++#undef sigisemptyset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigisemptyset, sigisemptyset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigismem.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigismem.c
+new file mode 100644
+index 0000000000..21432e423f
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigismem.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigismember __ow_sigismember
++#include<signal/sigismem.c>
++
++#undef sigismember
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigismember, sigismember, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h b/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h
+new file mode 100644
+index 0000000000..a74c224039
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h
+@@ -0,0 +1,16 @@
++#include <signal.h>
++#include <string.h>
++
++extern int __ow_sigaddset(sigset_t *, int);
++extern int __ow_sigdelset(sigset_t *, int);
++extern int __ow_sigemptyset(sigset_t *);
++extern int __ow_sigfillset(sigset_t *);
++extern int __ow_sigandset (sigset_t *__set, const sigset_t *__left, const sigset_t *__right);
++extern int __ow_sigorset (sigset_t *__set, const sigset_t *__left, const sigset_t *__right);
++
++#define __OW_NSIG 128
++
++static inline void __ow_clear_unused_bits(sigset_t *set)
++{
++    memset ((void *)set + (NSIG / 8), 0, (__OW_NSIG - NSIG) / 8);
++}
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigorset.c b/sysdeps/unix/sysv/linux/loongarch/ow_sigorset.c
+new file mode 100644
+index 0000000000..8e73662b68
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigorset.c
+@@ -0,0 +1,11 @@
++#define LA_OW_COMPACT
++
++#include<shlib-compat.h>
++
++#define sigorset __ow_sigorset
++#include<signal/sigorset.c>
++
++#undef sigorset
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol(libc, __ow_sigorset, sigorset, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_swapcontext.S b/sysdeps/unix/sysv/linux/loongarch/ow_swapcontext.S
+new file mode 100644
+index 0000000000..c0a0b6a487
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_swapcontext.S
+@@ -0,0 +1,13 @@
++#include <shlib-compat.h>
++#include "ow_ucontext-macros.h"
++
++#if SHLIB_COMPAT (libc, GLIBC_2_1, GLIBC_2_36)
++#undef versioned_symbol
++#define versioned_symbol(a, b, c, d)
++#define __swapcontext __ow___swapcontext
++#include "swapcontext.S"
++
++#undef __swapcontext
++compat_symbol (libc, __ow___swapcontext, swapcontext, GLIBC_2_1);
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_syscall_nr.h b/sysdeps/unix/sysv/linux/loongarch/ow_syscall_nr.h
+new file mode 100644
+index 0000000000..61886aebab
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_syscall_nr.h
+@@ -0,0 +1,2 @@
++#define __NR_newfstatat 79
++#define __NR_fstat 80
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_ucontext-macros.h b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext-macros.h
+new file mode 100644
+index 0000000000..984c906964
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext-macros.h
+@@ -0,0 +1,35 @@
++/* Macros for ucontext routines.
++   Copyright (C) 2022-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#ifndef _LINUX_LOONGARCH_OW_UCONTEXT_MACROS_H
++#define _LINUX_LOONGARCH_OW_UCONTEXT_MACROS_H
++
++// We also define this to prevent new world headers from being included.
++#define _LINUX_LOONGARCH_UCONTEXT_MACROS_H
++
++#include <sysdep.h>
++#include <sys/asm.h>
++#include "ow_ucontext_i.h"
++
++#define SAVE_INT_REG(name, num, base) \
++  REG_S name, base, ((num) *SZREG + MCONTEXT_GREGS)
++
++#define RESTORE_INT_REG(name, num, base) \
++  REG_L name, base, ((num) *SZREG + MCONTEXT_GREGS)
++
++#endif /* _LINUX_LOONGARCH_OW_UCONTEXT_MACROS_H */
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_ucontext.h b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext.h
+new file mode 100644
+index 0000000000..33cd554f11
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext.h
+@@ -0,0 +1,105 @@
++#ifndef _OW_UCONTEXT_H
++#define _OW_UCONTEXT_H 1
++#include <sys/ucontext.h>
++#include <signal.h>
++#include <assert.h>
++#include <string.h>
++#include "ow_sigop.h"
++
++union __ow_loongarch_mc_fp_state {
++    unsigned int   __val32[256 / 32];
++    unsigned long long   __val64[256 / 64];
++};
++
++typedef struct __ow_mcontext_t {
++    unsigned long long   __pc;
++    unsigned long long   __gregs[32];
++    unsigned int   __flags;
++
++    unsigned int   __fcsr;
++    unsigned int   __vcsr;
++    unsigned long long   __fcc;
++    union __ow_loongarch_mc_fp_state    __fpregs[32] __attribute__((__aligned__ (32)));
++
++    unsigned int   __reserved;
++} __ow_mcontext_t;
++
++/* Userlevel context.  */
++typedef struct __ow_ucontext_t
++  {
++    unsigned long int  __uc_flags;
++    struct __ow_ucontext_t *uc_link;
++    stack_t            uc_stack;
++    __ow_mcontext_t    uc_mcontext;
++    sigset_t           uc_sigmask;
++  } __ow_ucontext_t;
++
++struct __nw_sctx_info
++  {
++    unsigned int magic;
++    unsigned int size;
++    unsigned long long padding; /* padding to 16 bytes */
++  };
++
++/* FPU context */
++#define FPU_CTX_MAGIC 0x46505501
++#define FPU_CTX_ALIGN 8
++struct __nw_fpu_context
++  {
++    unsigned long long regs[32];
++    unsigned long long fcc;
++    unsigned int fcsr;
++  };
++/* LSX context */
++#define LSX_CTX_MAGIC 0x53580001
++#define LSX_CTX_ALIGN 16
++struct __nw_lsx_context
++  {
++    unsigned long long regs[32][2];
++    unsigned long long fcc;
++    unsigned long long fcsr;
++  };
++/* LASX context */
++#define LASX_CTX_MAGIC 0x41535801
++#define LASX_CTX_ALIGN 32
++struct __nw_lasx_context
++  {
++    unsigned long long regs[32][4];
++    unsigned long long fcc;
++    unsigned long long fcsr;
++  };
++
++static inline void __copy_nw_ow (__ow_ucontext_t *ow_ctx, const ucontext_t *nw_ctx){
++  ow_ctx->__uc_flags = nw_ctx->__uc_flags;
++  ow_ctx->uc_link = NULL;
++  ow_ctx->uc_stack = nw_ctx->uc_stack;
++  ow_ctx->uc_sigmask = nw_ctx->uc_sigmask;
++  __ow_clear_unused_bits (&ow_ctx->uc_sigmask);
++
++  ow_ctx->uc_mcontext.__pc = nw_ctx->uc_mcontext.__pc;
++  static_assert (sizeof (ow_ctx->uc_mcontext.__gregs) ==
++                 sizeof (nw_ctx->uc_mcontext.__gregs),
++                 "gregs size mismatch");
++  memcpy (&ow_ctx->uc_mcontext.__gregs, &nw_ctx->uc_mcontext.__gregs,
++          sizeof (ow_ctx->uc_mcontext.__gregs));
++  ow_ctx->uc_mcontext.__flags = nw_ctx->uc_mcontext.__flags;
++  ow_ctx->uc_mcontext.__fcsr = 0;
++  ow_ctx->uc_mcontext.__vcsr = 0;
++  ow_ctx->uc_mcontext.__fcc = 0;
++  memset (&ow_ctx->uc_mcontext.__fpregs, 0,
++          sizeof (ow_ctx->uc_mcontext.__fpregs));
++  ow_ctx->uc_mcontext.__reserved = 0;
++}
++
++static inline void __copy_ow_nw (ucontext_t *nw_ctx, const __ow_ucontext_t *ow_ctx){
++  nw_ctx->uc_mcontext.__flags = ow_ctx->uc_mcontext.__flags;
++  memcpy (&nw_ctx->uc_mcontext.__gregs, &ow_ctx->uc_mcontext.__gregs,
++          sizeof (nw_ctx->uc_mcontext.__gregs));
++  nw_ctx->uc_mcontext.__pc = ow_ctx->uc_mcontext.__pc;
++  nw_ctx->uc_sigmask = ow_ctx->uc_sigmask;
++  __ow_clear_unused_bits (&nw_ctx->uc_sigmask);
++  nw_ctx->uc_stack = ow_ctx->uc_stack;
++  nw_ctx->__uc_flags = ow_ctx->__uc_flags;
++}
++
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_ucontext_i.sym b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext_i.sym
+new file mode 100644
+index 0000000000..5af4dd4d54
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ow_ucontext_i.sym
+@@ -0,0 +1,32 @@
++#include <inttypes.h>
++#include <signal.h>
++#include <stddef.h>
++#include <sys/ucontext.h>
++#include "ow_ucontext.h"
++
++-- Constants used by the rt_sigprocmask call.
++
++SIG_BLOCK
++SIG_SETMASK
++
++_NSIG8				(_NSIG / 8)
++
++-- Offsets of the fields in the ucontext_t structure.
++#define ucontext(member)	offsetof (__ow_ucontext_t, member)
++#define stack(member)		ucontext (uc_stack.member)
++#define mcontext(member)	ucontext (uc_mcontext.member)
++
++UCONTEXT_FLAGS			ucontext (__uc_flags)
++UCONTEXT_LINK			ucontext (uc_link)
++UCONTEXT_STACK			ucontext (uc_stack)
++UCONTEXT_MCONTEXT		ucontext (uc_mcontext)
++UCONTEXT_SIGMASK		ucontext (uc_sigmask)
++
++STACK_SP			stack (ss_sp)
++STACK_SIZE			stack (ss_size)
++STACK_FLAGS			stack (ss_flags)
++
++MCONTEXT_PC			mcontext (__pc)
++MCONTEXT_GREGS			mcontext (__gregs)
++
++UCONTEXT_SIZE			sizeof (__ow_ucontext_t)
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ppoll.c b/sysdeps/unix/sysv/linux/loongarch/ppoll.c
+new file mode 100644
+index 0000000000..65b7258b23
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ppoll.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/ppoll.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/ppoll_chk.c b/sysdeps/unix/sysv/linux/loongarch/ppoll_chk.c
+new file mode 100644
+index 0000000000..638bd42c31
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/ppoll_chk.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/ppoll_chk.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/pselect.c b/sysdeps/unix/sysv/linux/loongarch/pselect.c
+new file mode 100644
+index 0000000000..224a88aa90
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/pselect.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/pselect.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/setcontext.S b/sysdeps/unix/sysv/linux/loongarch/setcontext.S
+index d01409af46..5ca9467b17 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/setcontext.S
++++ b/sysdeps/unix/sysv/linux/loongarch/setcontext.S
+@@ -15,6 +15,8 @@
+    You should have received a copy of the GNU Lesser General Public
+    License along with the GNU C Library.  If not, see
+    <https://www.gnu.org/licenses/>.  */
++
++#include <shlib-compat.h>
+ #include "sys/regdef.h"
+ #include "ucontext-macros.h"
+ 
+@@ -80,7 +82,7 @@ LEAF (__setcontext)
+ 	b		__syscall_error
+ 
+ PSEUDO_END (__setcontext)
+-weak_alias (__setcontext, setcontext)
++versioned_symbol (libc, __setcontext, setcontext, GLIBC_2_36);
+ 
+ LEAF (__start_context)
+ 
+diff --git a/sysdeps/unix/sysv/linux/loongarch/shlib-versions b/sysdeps/unix/sysv/linux/loongarch/shlib-versions
+index 5f40e7f5ec..4f126b5494 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/shlib-versions
++++ b/sysdeps/unix/sysv/linux/loongarch/shlib-versions
+@@ -1,9 +1,2 @@
+-DEFAULT		GLIBC_2.36
+-
+-%if LOONGARCH_ABI_GRLEN == 64 && LOONGARCH_ABI_FRLEN == 64
+-ld=ld-linux-loongarch-lp64d.so.1
+-%elif LOONGARCH_ABI_GRLEN == 64 && LOONGARCH_ABI_FRLEN == 0
+-ld=ld-linux-loongarch-lp64s.so.1
+-%else
+-%error cannot determine ABI
+-%endif
++DEFAULT		GLIBC_2.27 GLIBC_2.28 GLIBC_2.36
++libpthread=0    GLIBC_2.0 GLIBC_2.2 GLIBC_2.2.1 GLIBC_2.2.2 GLIBC_2.2.3 GLIBC_2.2.4 GLIBC_2.2.6 GLIBC_2.3 GLIBC_2.3.2 GLIBC_2.3.3 GLIBC_2.3.4 GLIBC_2.4 GLIBC_2.5 GLIBC_2.6 GLIBC_2.7 GLIBC_2.8 GLIBC_2.9 GLIBC_2.10 GLIBC_2.11 GLIBC_2.12 GLIBC_2.13 GLIBC_2.14 GLIBC_2.15 GLIBC_2.16 GLIBC_2.17 GLIBC_2.18 GLIBC_2.19 GLIBC_2.20 GLIBC_2.21 GLIBC_2.22 GLIBC_2.23 GLIBC_2.24 GLIBC_2.25 GLIBC_2.26 GLIBC_2.27 GLIBC_2.28 GLIBC_2.36
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigaction.c b/sysdeps/unix/sysv/linux/loongarch/sigaction.c
+new file mode 100644
+index 0000000000..6e370c338b
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigaction.c
+@@ -0,0 +1,384 @@
++#include <shlib-compat.h>
++#include <signal.h>
++#include <internal-signals.h>
++
++#undef weak_alias
++#define weak_alias(name, aliasname)
++#undef libc_hidden_def
++#define libc_hidden_def(name)
++#define __sigaction __nw_sigaction
++
++#include <signal/sigaction.c>
++
++#undef __sigaction
++
++versioned_symbol (libc, __nw_sigaction, sigaction, GLIBC_2_36);
++versioned_symbol (libc, __nw_sigaction, __sigaction, GLIBC_2_36);
++libc_hidden_ver (__nw_sigaction, __sigaction);
++
++#if IS_IN(libc) && (SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_36) || OTHER_SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_34))
++#include <sys/mman.h>
++#include <assert.h>
++#if !IS_IN(rtld)
++#include <libc-lock.h>
++#endif
++#include "ow_ucontext.h"
++
++typedef void (*__linx_sighandler_t) (int, siginfo_t *, void *);
++
++static void
++custom_handler (int sig, siginfo_t *info, void *ucontext,
++                __linx_sighandler_t real_handler)
++{
++    struct __ow_ucontext_t ow_ctx;
++
++    struct ucontext_t *nw_ctx = ucontext;
++
++    __copy_nw_ow(&ow_ctx, nw_ctx);
++    int have_fpu = 0, have_lsx = 0, have_lasx = 0;
++    void *fp_ctx_p = NULL;
++    struct __nw_sctx_info *extinfo = (void *)&nw_ctx->uc_mcontext.__extcontext;
++    while (extinfo->magic)
++    {
++        switch (extinfo->magic)
++        {
++            case FPU_CTX_MAGIC:
++            {
++                struct __nw_fpu_context *fp_ctx = (void *)(extinfo + 1);
++                have_fpu = 1;
++                fp_ctx_p = fp_ctx;
++                ow_ctx.uc_mcontext.__fcsr = fp_ctx->fcsr;
++                ow_ctx.uc_mcontext.__fcc = fp_ctx->fcc;
++                for (int i = 0; i < 32; i++)
++                {
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[0] = fp_ctx->regs[i];
++                }
++                break;
++            }
++            case LSX_CTX_MAGIC:
++            {
++                struct __nw_lsx_context *fp_ctx = (void *)(extinfo + 1);
++                have_lsx = 1;
++                fp_ctx_p = fp_ctx;
++                ow_ctx.uc_mcontext.__fcsr = fp_ctx->fcsr;
++                ow_ctx.uc_mcontext.__fcc = fp_ctx->fcc;
++                for (int i = 0; i < 32; i++)
++                {
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[0] = fp_ctx->regs[i][0];
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[1] = fp_ctx->regs[i][1];
++                }
++                break;
++            }
++            case LASX_CTX_MAGIC:
++            {
++                struct __nw_lasx_context *fp_ctx = (void *)(extinfo + 1);
++                have_lasx = 1;
++                fp_ctx_p = fp_ctx;
++                ow_ctx.uc_mcontext.__fcsr = fp_ctx->fcsr;
++                ow_ctx.uc_mcontext.__fcc = fp_ctx->fcc;
++                for (int i = 0; i < 32; i++)
++                {
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[0] = fp_ctx->regs[i][0];
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[1] = fp_ctx->regs[i][1];
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[2] = fp_ctx->regs[i][2];
++                    ow_ctx.uc_mcontext.__fpregs[i].__val64[3] = fp_ctx->regs[i][3];
++                }
++                break;
++            }
++        }
++        if (have_fpu || have_lsx || have_lasx)
++        {
++            break;
++        }
++        extinfo = (struct __nw_sctx_info *)((void *)extinfo + extinfo->size);
++    }
++
++    real_handler (sig, info, &ow_ctx);
++
++    if (have_lasx)
++    {
++        struct __nw_lasx_context *fp_ctx = fp_ctx_p;
++        for (int i = 0; i < 32; i++)
++        {
++            fp_ctx->regs[i][0] = ow_ctx.uc_mcontext.__fpregs[i].__val64[0];
++            fp_ctx->regs[i][1] = ow_ctx.uc_mcontext.__fpregs[i].__val64[1];
++            fp_ctx->regs[i][2] = ow_ctx.uc_mcontext.__fpregs[i].__val64[2];
++            fp_ctx->regs[i][3] = ow_ctx.uc_mcontext.__fpregs[i].__val64[3];
++        }
++        fp_ctx->fcc = ow_ctx.uc_mcontext.__fcc;
++        fp_ctx->fcsr = ow_ctx.uc_mcontext.__fcsr;
++    }
++    else if (have_lsx)
++    {
++        struct __nw_lsx_context *fp_ctx = fp_ctx_p;
++        for (int i = 0; i < 32; i++)
++        {
++            fp_ctx->regs[i][0] = ow_ctx.uc_mcontext.__fpregs[i].__val64[0];
++            fp_ctx->regs[i][1] = ow_ctx.uc_mcontext.__fpregs[i].__val64[1];
++        }
++        fp_ctx->fcc = ow_ctx.uc_mcontext.__fcc;
++        fp_ctx->fcsr = ow_ctx.uc_mcontext.__fcsr;
++    }
++    else if (have_fpu)
++    {
++        struct __nw_fpu_context *fp_ctx = fp_ctx_p;
++        for (int i = 0; i < 32; i++)
++        {
++            fp_ctx->regs[i] = ow_ctx.uc_mcontext.__fpregs[i].__val64[0];
++        }
++        fp_ctx->fcc = ow_ctx.uc_mcontext.__fcc;
++        fp_ctx->fcsr = ow_ctx.uc_mcontext.__fcsr;
++    }
++    __copy_ow_nw (nw_ctx, &ow_ctx);
++}
++
++static inline int
++is_fake_handler (__linx_sighandler_t handler)
++{
++  return handler == (__linx_sighandler_t)SIG_ERR
++         || handler == (__linx_sighandler_t)SIG_DFL
++         || handler == (__linx_sighandler_t)SIG_IGN
++#ifdef SIG_HOLD
++         || handler == (__linx_sighandler_t)SIG_HOLD
++#endif
++      ;
++}
++
++
++#define LA_INS_PCADDI 0x18000000u
++#define LA_INS_LD_D 0x28C00000u
++#define LA_INS_JIRL 0x4C000000u
++#define LA_REG_ZERO 0
++#define LA_REG_T0 12
++#define LA_REG_RA 1
++#define LA_REG_A0 4
++#define LA_REG_A1 5
++#define LA_REG_A2 6
++#define LA_REG_A3 7
++#define LA_REG_A4 8
++#define LA_REG_A5 9
++
++#define SIGHANDLER_PROG_NR_INS 4
++struct __attribute__ ((__packed__, aligned (8))) sighandler_prog
++{
++  unsigned int magic[2];
++  unsigned int prog[SIGHANDLER_PROG_NR_INS];
++
++  struct sighandler_prog_data
++  {
++    unsigned long our_handler_addr;
++    unsigned long orig_handler_addr;
++  } data;
++} static const prog_tmpl = {
++  .magic = {U"开刀"},
++  .prog = {
++    /* pcaddi $t0, SIGHANDLER_PROG_NR_INS */
++    LA_INS_PCADDI | LA_REG_T0 | (SIGHANDLER_PROG_NR_INS << 5),
++    /* ld.d $a3, $t0, orig_handler_addr */
++    LA_INS_LD_D | LA_REG_A3 | (LA_REG_T0 << 5) | (offsetof (struct sighandler_prog_data, orig_handler_addr) << 10),
++    /* ld.d $t0, $t0, our_handler_addr */
++    LA_INS_LD_D | LA_REG_T0 | (LA_REG_T0 << 5) | (offsetof (struct sighandler_prog_data, our_handler_addr) << 10),
++    /* jirl $zero, $t0, 0 */
++    LA_INS_JIRL | LA_REG_ZERO | (LA_REG_T0 << 5) | (0 << 10),
++  },
++  .data = {
++    .our_handler_addr = (unsigned long)custom_handler,
++  }
++};
++
++
++#define PROG_POOL_SIZE 2
++#define LA_PAGE_SIZE (16 * 1024)
++
++static_assert (sizeof (struct sighandler_prog) <= LA_PAGE_SIZE,
++               "sighandler_prog too large");
++static_assert (SIGHANDLER_PROG_NR_INS < (1u << 19), "prog too long");
++static_assert (offsetof (struct sighandler_prog, data.our_handler_addr)
++                   == offsetof (struct sighandler_prog, prog)
++                          + sizeof (unsigned int) * SIGHANDLER_PROG_NR_INS,
++               "data offset wrong");
++static_assert (offsetof (struct sighandler_prog, data.our_handler_addr)
++                       % sizeof (unsigned long)
++                   == 0,
++               "data offset not aligned");
++static_assert (offsetof (struct sighandler_prog_data, orig_handler_addr)
++                   < (1u << 11),
++               "data too long");
++static_assert (offsetof (struct sighandler_prog_data, our_handler_addr)
++                   < (1u << 11),
++               "data too long");
++
++
++struct sighandler_prog_pool
++{
++  struct sighandler_prog *prog[PROG_POOL_SIZE];
++  size_t pos;
++#if !IS_IN(rtld)
++  __libc_lock_define (, lock);
++#endif
++};
++
++static void
++destroy_handler (struct sighandler_prog *prog)
++{
++  __munmap (prog, LA_PAGE_SIZE);
++}
++
++
++static struct sighandler_prog *
++alloc_handler (__linx_sighandler_t handler)
++{
++  struct sighandler_prog *prog
++      = __mmap (NULL, LA_PAGE_SIZE, PROT_READ | PROT_WRITE,
++                MAP_ANON | MAP_PRIVATE, -1, 0);
++  if (__glibc_unlikely (prog == MAP_FAILED))
++    {
++      return NULL;
++    }
++  memcpy (prog, &prog_tmpl, sizeof (struct sighandler_prog));
++  prog->data.orig_handler_addr = (unsigned long)handler;
++
++  int rc = __mprotect (prog, LA_PAGE_SIZE, PROT_READ | PROT_EXEC);
++  if (rc < 0)
++    {
++      destroy_handler (prog);
++      prog = NULL;
++    }
++  return prog;
++}
++
++
++static void
++store_handler (struct sighandler_prog_pool *pool, struct sighandler_prog *prog)
++{
++  struct sighandler_prog *orig_prog;
++  orig_prog = pool->prog[pool->pos];
++  pool->prog[pool->pos] = prog;
++  pool->pos = (pool->pos + 1) % PROG_POOL_SIZE;
++  if (orig_prog)
++    {
++      destroy_handler (orig_prog);
++    }
++}
++
++int __ow___sigaction (int sig, const struct sigaction *act, struct sigaction *oact)
++{
++    static struct sighandler_prog_pool prog_pool[NSIG]
++      = { [0 ... NSIG - 1] = {
++              .prog = { NULL },
++              .pos = 0,
++#if !IS_IN(rtld)
++              .lock = _LIBC_LOCK_INITIALIZER,
++#endif
++          } };
++
++    sigset_t saveset, allset;
++    struct sighandler_prog *old_prog = NULL;
++    struct sighandler_prog *new_prog = NULL;
++    int result = 0, result2 = 0;
++    struct sigaction iact, ioact;
++
++    if (sig <= 0 || sig >= __OW_NSIG || is_internal_signal (sig))
++    {
++        __set_errno (EINVAL);
++        return -1;
++    }
++
++    if (sig >= NSIG)
++    {
++        if (oact)
++        {
++            memset (oact, 0, sizeof (struct sigaction));
++            oact->sa_handler = SIG_IGN;
++        }
++        return 0;
++    }
++
++    if (act)
++    {
++        if (!is_fake_handler (act->sa_sigaction))
++        {
++            new_prog = alloc_handler (act->sa_sigaction);
++            if (!new_prog)
++            {
++              return -1;
++            }
++            iact.sa_sigaction = (__linx_sighandler_t)new_prog;
++        }
++        else
++        {
++            iact.sa_sigaction = act->sa_sigaction;
++        }
++        memcpy (&iact.sa_mask, &act->sa_mask, sizeof (sigset_t));
++        iact.sa_flags = act->sa_flags;
++    }
++    if (new_prog)
++    {
++        __sigfillset (&allset);
++        result = INLINE_SYSCALL_CALL (rt_sigprocmask, SIG_BLOCK, &allset,
++                                    &saveset, NSIG / 8);
++        if (result < 0)
++        {
++            destroy_handler (new_prog);
++            return result;
++        }
++
++#if !IS_IN(rtld)
++        __libc_lock_lock (prog_pool[sig].lock);
++#endif
++    }
++    result = __libc_sigaction (sig, act ? &iact : NULL, oact ? &ioact : NULL);
++    if (result < 0)
++    {
++        if (new_prog)
++        {
++            destroy_handler (new_prog);
++        }
++        goto out_unlock;
++    }
++    if (oact)
++    {
++        oact->sa_sigaction = ioact.sa_sigaction;
++        if (!is_fake_handler (ioact.sa_sigaction))
++        {
++            old_prog = (struct sighandler_prog *)ioact.sa_sigaction;
++            if (memcmp (old_prog->magic, prog_tmpl.magic,
++                      sizeof (prog_tmpl.magic))
++              == 0)
++            {
++                oact->sa_sigaction
++                    = (__linx_sighandler_t)old_prog->data.orig_handler_addr;
++            }
++        }
++        memcpy (&oact->sa_mask, &ioact.sa_mask, NSIG / 8);
++        __ow_clear_unused_bits (&oact->sa_mask);
++        oact->sa_flags = ioact.sa_flags;
++    }
++    if (new_prog)
++        store_handler (&prog_pool[sig], new_prog);
++
++out_unlock:
++    if (new_prog)
++    {
++#if !IS_IN(rtld)
++        __libc_lock_unlock (prog_pool[sig].lock);
++#endif
++
++        result2 = INLINE_SYSCALL_CALL (rt_sigprocmask, SIG_SETMASK, &saveset,
++                                       NULL, NSIG / 8);
++    if (result2 < 0)
++        result = result2;
++    }
++    return result;
++}
++
++#if SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_36)
++compat_symbol (libc, __ow___sigaction, sigaction, GLIBC_2_0);
++compat_symbol (libc, __ow___sigaction, __sigaction, GLIBC_2_0);
++#endif
++
++#if OTHER_SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_34)
++compat_symbol (libpthread, __ow___sigaction, sigaction, GLIBC_2_0);
++compat_symbol (libpthread, __ow___sigaction, __sigaction, GLIBC_2_0);
++#endif
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigaddset.c b/sysdeps/unix/sysv/linux/loongarch/sigaddset.c
+new file mode 100644
+index 0000000000..d86362d17c
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigaddset.c
+@@ -0,0 +1,11 @@
++#include<shlib-compat.h>
++#include<signal.h>
++
++#define sigaddset __nw_sigaddset
++#undef libc_hidden_def
++#define libc_hidden_def(name)
++#include<signal/sigaddset.c>
++
++#undef sigaddset
++versioned_symbol(libc, __nw_sigaddset, sigaddset, GLIBC_2_36);
++libc_hidden_ver(__nw_sigaddset, sigaddset)
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigandset.c b/sysdeps/unix/sysv/linux/loongarch/sigandset.c
+new file mode 100644
+index 0000000000..e3345db85f
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigandset.c
+@@ -0,0 +1,7 @@
++#include<shlib-compat.h>
++
++#define sigandset __nw_sigandset
++#include<signal/sigandset.c>
++
++#undef sigandset
++versioned_symbol(libc, __nw_sigandset, sigandset, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigdelset.c b/sysdeps/unix/sysv/linux/loongarch/sigdelset.c
+new file mode 100644
+index 0000000000..13e9c950d7
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigdelset.c
+@@ -0,0 +1,11 @@
++#include<shlib-compat.h>
++#include<signal.h>
++
++#define sigdelset __nw_sigdelset
++#undef libc_hidden_def
++#define libc_hidden_def(name)
++#include<signal/sigdelset.c>
++
++#undef sigdelset
++versioned_symbol(libc, __nw_sigdelset, sigdelset, GLIBC_2_36);
++libc_hidden_ver(__nw_sigdelset, sigdelset)
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigempty.c b/sysdeps/unix/sysv/linux/loongarch/sigempty.c
+new file mode 100644
+index 0000000000..476756e6e0
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigempty.c
+@@ -0,0 +1,11 @@
++#include<shlib-compat.h>
++#include<signal.h>
++
++#define sigemptyset __nw_sigemptyset
++#undef libc_hidden_def
++#define libc_hidden_def(name)
++#include<signal/sigempty.c>
++
++#undef sigemptyset
++versioned_symbol(libc, __nw_sigemptyset, sigemptyset, GLIBC_2_36);
++libc_hidden_ver(__nw_sigemptyset, sigemptyset)
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigfillset.c b/sysdeps/unix/sysv/linux/loongarch/sigfillset.c
+new file mode 100644
+index 0000000000..2f55b8664c
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigfillset.c
+@@ -0,0 +1,11 @@
++#include<shlib-compat.h>
++#include<signal.h>
++
++#define sigfillset __nw_sigfillset
++#undef libc_hidden_def
++#define libc_hidden_def(name)
++#include<signal/sigfillset.c>
++
++#undef sigfillset
++versioned_symbol(libc, __nw_sigfillset, sigfillset, GLIBC_2_36);
++libc_hidden_ver(__nw_sigfillset, sigfillset)
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigisempty.c b/sysdeps/unix/sysv/linux/loongarch/sigisempty.c
+new file mode 100644
+index 0000000000..b6ea8b8454
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigisempty.c
+@@ -0,0 +1,7 @@
++#include<shlib-compat.h>
++
++#define sigisemptyset __nw_sigisemptyset
++#include<signal/sigisempty.c>
++
++#undef sigisemptyset
++versioned_symbol(libc, __nw_sigisemptyset, sigisemptyset, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigismem.c b/sysdeps/unix/sysv/linux/loongarch/sigismem.c
+new file mode 100644
+index 0000000000..ae7d9b624d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigismem.c
+@@ -0,0 +1,7 @@
++#include<shlib-compat.h>
++
++#define sigismember __nw_sigismember
++#include<signal/sigismem.c>
++
++#undef sigismember
++versioned_symbol(libc, __nw_sigismember, sigismember, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/signalfd.c b/sysdeps/unix/sysv/linux/loongarch/signalfd.c
+new file mode 100644
+index 0000000000..dc0ab6db79
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/signalfd.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/signalfd.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigorset.c b/sysdeps/unix/sysv/linux/loongarch/sigorset.c
+new file mode 100644
+index 0000000000..a49e3f4ee8
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigorset.c
+@@ -0,0 +1,7 @@
++#include<shlib-compat.h>
++
++#define sigorset __nw_sigorset
++#include<signal/sigorset.c>
++
++#undef sigorset
++versioned_symbol(libc, __nw_sigorset, sigorset, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigpending.c b/sysdeps/unix/sysv/linux/loongarch/sigpending.c
+new file mode 100644
+index 0000000000..238c27ade3
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigpending.c
+@@ -0,0 +1,22 @@
++#include<shlib-compat.h>
++
++#include<signal.h>
++
++#define sigpending __sigpending
++#include<sysdeps/unix/sysv/linux/sigpending.c>
++#undef sigpending
++
++versioned_symbol (libc, __sigpending, sigpending, GLIBC_2_36);
++
++#if SHLIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_36)
++#include "ow_sigop.h"
++int __ow_sigpending (sigset_t *set)
++{
++    int rc = __sigpending (set);
++    if (rc >= 0){
++        __ow_clear_unused_bits(set);
++    }
++    return rc;
++}
++compat_symbol (libc, __ow_sigpending, sigpending, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigprocmask.c b/sysdeps/unix/sysv/linux/loongarch/sigprocmask.c
+new file mode 100644
+index 0000000000..17aa8572a9
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigprocmask.c
+@@ -0,0 +1,20 @@
++#include <shlib-compat.h>
++
++#undef weak_alias
++#define weak_alias(name, aliasname)
++#include <sysdeps/unix/sysv/linux/sigprocmask.c>
++
++versioned_symbol (libc, __sigprocmask, sigprocmask, GLIBC_2_36);
++
++#if SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_36)
++#include "ow_sigop.h"
++int __ow_sigprocmask (int how, const sigset_t *set, sigset_t *oldset)
++{
++    int rc = __sigprocmask (how, set, oldset);
++    if (rc >= 0 && oldset != NULL){
++        __ow_clear_unused_bits(oldset);
++    }
++    return rc;
++}
++compat_symbol (libc, __ow_sigprocmask, sigprocmask, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigsuspend.c b/sysdeps/unix/sysv/linux/loongarch/sigsuspend.c
+new file mode 100644
+index 0000000000..9351c54b96
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigsuspend.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/sigsuspend.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigtimedwait.c b/sysdeps/unix/sysv/linux/loongarch/sigtimedwait.c
+new file mode 100644
+index 0000000000..65636bb644
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigtimedwait.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/sigtimedwait.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigwait.c b/sysdeps/unix/sysv/linux/loongarch/sigwait.c
+new file mode 100644
+index 0000000000..e11d42f204
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigwait.c
+@@ -0,0 +1,10 @@
++#include<shlib-compat.h>
++
++#undef weak_alias
++#define weak_alias(name, aliasname)
++#include<sysdeps/unix/sysv/linux/sigwait.c>
++
++versioned_symbol (libc, __sigwait, sigwait, GLIBC_2_0);
++#if OTHER_SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_34)
++compat_symbol (libpthread, __sigwait, sigwait, GLIBC_2_0);
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/sigwaitinfo.c b/sysdeps/unix/sysv/linux/loongarch/sigwaitinfo.c
+new file mode 100644
+index 0000000000..36edb29394
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/sigwaitinfo.c
+@@ -0,0 +1 @@
++#include<sysdeps/unix/sysv/linux/sigwaitinfo.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/spawnattr_getdefault.c b/sysdeps/unix/sysv/linux/loongarch/spawnattr_getdefault.c
+new file mode 100644
+index 0000000000..0d6e3feb02
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/spawnattr_getdefault.c
+@@ -0,0 +1 @@
++#include<posix/spawnattr_getdefault.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/spawnattr_getsigmask.c b/sysdeps/unix/sysv/linux/loongarch/spawnattr_getsigmask.c
+new file mode 100644
+index 0000000000..192980c66c
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/spawnattr_getsigmask.c
+@@ -0,0 +1 @@
++#include<posix/spawnattr_getsigmask.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/spawnattr_setdefault.c b/sysdeps/unix/sysv/linux/loongarch/spawnattr_setdefault.c
+new file mode 100644
+index 0000000000..f75f1f16f0
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/spawnattr_setdefault.c
+@@ -0,0 +1 @@
++#include<posix/spawnattr_setdefault.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/spawnattr_setsigmask.c b/sysdeps/unix/sysv/linux/loongarch/spawnattr_setsigmask.c
+new file mode 100644
+index 0000000000..a95cf5daff
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/spawnattr_setsigmask.c
+@@ -0,0 +1 @@
++#include<posix/spawnattr_setsigmask.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/statx_cp.c b/sysdeps/unix/sysv/linux/loongarch/statx_cp.c
+new file mode 100644
+index 0000000000..3b57a461d1
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/statx_cp.c
+@@ -0,0 +1,4 @@
++// We neet statx_cp for oldworld compaitibility.
++// So include it back and override the oerride in wordsize-64
++
++#include <sysdeps/unix/sysv/linux/statx_cp.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/swapcontext.S b/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
+index e58d5c0cf4..d69540efa5 100644
+--- a/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
++++ b/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
+@@ -16,6 +16,7 @@
+    License along with the GNU C Library.  If not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
++#include <shlib-compat.h>
+ #include "ucontext-macros.h"
+ 
+ /* int swapcontext (ucontext_t *oucp, const ucontext_t *ucp) */
+@@ -92,4 +93,4 @@ LEAF (__swapcontext)
+ 
+ PSEUDO_END (__swapcontext)
+ 
+-weak_alias (__swapcontext, swapcontext)
++versioned_symbol (libc, __swapcontext, swapcontext, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/xstat64.c b/sysdeps/unix/sysv/linux/loongarch/xstat64.c
+new file mode 100644
+index 0000000000..c30f52e9f6
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/xstat64.c
+@@ -0,0 +1,71 @@
++/* xstat64 using Linux stat64 system call.
++   Copyright (C) 1991-2023 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#define __xstat __redirect___xstat
++#include <sys/stat.h>
++#undef __xstat
++#include <fcntl.h>
++#include <kernel_stat.h>
++#include <sysdep.h>
++#include <xstatconv.h>
++#include <statx_cp.h>
++#include <shlib-compat.h>
++#include "ow_syscall_nr.h"
++
++#if LIB_COMPAT(libc, GLIBC_2_0, GLIBC_2_33)
++
++/* Get information about the file NAME in BUF.  */
++
++int
++___xstat64 (int vers, const char *name, struct stat64 *buf)
++{
++  /* New 32-bit kABIs with only 64-bit time_t support, e.g. arc, riscv32.  */
++  if (vers == _STAT_VER_KERNEL)
++    {
++      struct statx tmp;
++      int r = INLINE_SYSCALL_CALL (statx, AT_FDCWD, name, AT_NO_AUTOMOUNT,
++				   STATX_BASIC_STATS, &tmp);
++      if (r == 0) {
++        __cp_stat64_statx (buf, &tmp);
++        return r;
++      }else if(errno != ENOSYS){
++        return r;
++      }
++#if defined __NR_newfstatat
++      return INLINE_SYSCALL_CALL (newfstatat, AT_FDCWD, name, buf, 0);
++#endif
++      return r;
++     }
++
++  return INLINE_SYSCALL_ERROR_RETURN_VALUE (EINVAL);
++}
++
++#if XSTAT_IS_XSTAT64
++strong_alias (___xstat64, __xstat)
++#endif
++
++#if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_2)
++versioned_symbol (libc, ___xstat64, __xstat64, GLIBC_2_2);
++strong_alias (___xstat64, __old__xstat64)
++compat_symbol (libc, __old__xstat64, __xstat64, GLIBC_2_1);
++#else
++strong_alias (___xstat64, __xstat64)
++#endif
++
++
++#endif /* LIB_COMPAT  */

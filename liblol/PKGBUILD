@@ -4,15 +4,161 @@ pkgrel=2
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"
-license=(GPL2)
+license=(GPL-2.0-or-later LGPL-2.1-or-later)
 depends=(la_ow_syscall-dkms)
-source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
-sha256sums=('1dbbb22a81a433bf3cc238794509c5416323f39ae73c1e61737cc7ecc7d333ae')
+makedepends=(git gd python)
+#source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
+source=("https://ftp.gnu.org/gnu/glibc/glibc-2.38.tar.xz"
+    "https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz"
+    "glibc-liblol.patch"
+    "0001-add-remap-symvers.patch"
+    "liblol.conf"
+    )
+sha256sums=('fb82998998b2b29965467bc1b69d152e9c307d2cf301c9eafb4555b770ef3fd2'
+            '1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7'
+            'b5f654de3db0bc77269b0c5bb24550ec0b01f43cd3b4792fa6f9d5d913cd25e6'
+            'de41328fd02b6e3c9ee6db7040cb249245e734fc22ae94039954d738b1650ea9'
+            'f330d80e91d1b7adba14d2a25c8661140dbe2e0d5b1b33ac0c7bc1c29c1e78de')
 install="${pkgname}.install"
 options=(strip !debug)
 
+OWTARGET="loongarch64-aosc-linux-gnuow"
+
+prepare() {
+  patch -p1 -d patchelf-0.18.0 -i $srcdir/0001-add-remap-symvers.patch
+  patch -p1 -d glibc-2.38 -i $srcdir/glibc-liblol.patch
+
+  ln -s glibc-2.38 glibc
+  ln -s patchelf-0.18.0 patchelf
+
+  mkdir -p glibc-build
+  (
+   cd patchelf
+   autoreconf -fiv
+  )
+}
+
+build() {
+  (
+   cd patchelf
+   ./configure --prefix=/usr
+   make
+  )
+
+  local _configure_flags=(
+      --prefix=/usr
+      --with-headers=/usr/include
+      --with-bugurl=https://github.com/loongarchlinux/core/issues
+      --enable-bind-now
+      --enable-fortify-source
+      --enable-kernel=4.4
+      --enable-multi-arch
+      --enable-stack-protector=strong
+      --enable-systemtap
+      --disable-nscd
+      --disable-profile
+      --enable-obsolete-api=no
+      --disable-werror
+  )
+
+  (
+    cd glibc-build
+
+    LOL_PREFIX="/opt/lol"
+    GLIBC_VER="2.38"
+    cflags_common="-O2 -g -ffile-prefix-map=${startdir}=."
+    ldflags_common="-Wl,-O1,--sort-common,--as-needed -Wl,-build-id=sha1"
+
+    cat > configparms <<EOF
+slibdir = /usr/lib
+rtlddir = /usr/lib
+sbindir = /usr/bin
+rootsbindir = /usr/bin
+sysconfdir = $LOL_PREFIX/etc
+user-defined-trusted-dirs-pre = $LOL_PREFIX/local/preload-lib $LOL_PREFIX/support/lib/$OWTARGET
+user-defined-trusted-dirs = $LOL_PREFIX/local/lib $LOL_PREFIX/lib/$OWTARGET $LOL_PREFIX/lib
+build-programs=no
+
+CFLAGS = -pipe $cflags_common
+ASFLAGS = -pipe $cflags_common
+BUILD_CFLAGS = $cflags_common
+LDFLAGS = $ldflags_common
+EOF
+
+    "${srcdir}"/glibc/configure \
+        --libdir=/usr/lib \
+        --libexecdir=/usr/lib \
+        --enable-cet \
+	--without-gd \
+	--enable-crypt \
+        "${_configure_flags[@]}"
+
+    make -O
+
+    echo "Generating a dummy ld-linux-loongarch-lp64d.so.1 ..."
+    gcc -shared \
+    -x c /dev/null \
+    -o ld-linux-loongarch-lp64d.so.1 \
+    -Wl,--version-script -Wl,ld.map \
+    -nostdlib \
+    $cflags_common \
+    $ldflags_common
+  )
+}
+
 package() {
-  tar -C ${pkgdir} -xf data.tar.xz
-  rm -rf ${pkgdir}/usr/share/doc
   mkdir -p ${pkgdir}/opt/lol/local/{lib,preload-lib}
+  mkdir -p ${pkgdir}/opt/lol/lib/${OWTARGET}
+  mkdir -p ${pkgdir}/opt/lol/support/lib
+
+  make -C glibc-build DESTDIR="${pkgdir}" install
+  install -Dm755 glibc-build/ld-linux-loongarch-lp64d.so.1 "${pkgdir}"/usr/lib/ld-linux-loongarch-lp64d.so.1
+  rm -rf ${pkgdir}/usr/lib/{audit,gconv}
+  rm -f ${pkgdir}/usr/lib/{*.a,*.o,*.so}
+  ln -sf /usr/lib/libstdc++.so.6 ${pkgdir}/usr/lib/libstdc++.so.6
+
+  fix_libs=(
+      ld.so.1
+      libBrokenLocale.so.1
+      libc.so.6
+      libc_malloc_debug.so.0
+      libcrypt.so.1
+      libdl.so.2
+      libm.so.6
+      libnss_compat.so.2
+      libnss_db.so.2
+      libnss_dns.so.2
+      libnss_files.so.2
+      libnss_hesiod.so.2
+      libpthread.so.0
+      libresolv.so.2
+      librt.so.1
+      libthread_db.so.1
+      )
+
+  for i in libpthread.so.0 libc.so.6; do
+    $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 16 * 1024 ))" \
+      --remap-symvers "GLIBC_2.27=GLIBC_2.0,GLIBC_2.2,GLIBC_2.2.1,GLIBC_2.2.2,GLIBC_2.2.3,GLIBC_2.2.4,GLIBC_2.2.6,GLIBC_2.3,GLIBC_2.3.2,GLIBC_2.3.3,GLIBC_2.3.4,GLIBC_2.4,GLIBC_2.5,GLIBC_2.6,GLIBC_2.7,GLIBC_2.8,GLIBC_2.9,GLIBC_2.10,GLIBC_2.11,GLIBC_2.12,GLIBC_2.13,GLIBC_2.14,GLIBC_2.15,GLIBC_2.16,GLIBC_2.17,GLIBC_2.18,GLIBC_2.19,GLIBC_2.20,GLIBC_2.21,GLIBC_2.22,GLIBC_2.23,GLIBC_2.24,GLIBC_2.25,GLIBC_2.26,GLIBC_2.27,GLIBC_2.28" \
+      --also-remap-verneed \
+      "${pkgdir}/usr/lib/$i"
+  done
+
+  for i in "${fix_libs[@]}"; do
+    $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 16 * 1024 ))" \
+      --remap-symvers "GLIBC_2.36=GLIBC_2.27,GLIBC_2.28" \
+      --also-remap-verneed \
+      "${pkgdir}/usr/lib/$i"
+  done
+
+  mv "${pkgdir}/usr/lib/" ${pkgdir}/opt/lol/support/lib/${OWTARGET}
+
+  install -Dm644 ${srcdir}/liblol.conf ${pkgdir}/usr/lib/modules-load.d/liblol.conf
+  ln -sf /opt/lol/support/lib/${OWTARGET}/ld.so.1 ${pkgdir}/usr/lib/ld.so.1
+
+  rm -rf ${pkgdir}/usr/share/{i18n,info,locale}
+  rm -rf ${pkgdir}/usr/{bin,include}
+  rm -rf ${pkgdir}/var
+  rm -rf ${pkgdir}/etc
 }
