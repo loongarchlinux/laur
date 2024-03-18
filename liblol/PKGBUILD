@@ -125,6 +125,7 @@ package() {
       libcrypt.so.1
       libdl.so.2
       libm.so.6
+      libnsl.so.1
       libnss_compat.so.2
       libnss_db.so.2
       libnss_dns.so.2
