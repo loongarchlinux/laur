@@ -1,6 +1,6 @@
 pkgname=liblol
-pkgver=0.1.3
-pkgrel=2
+pkgver=0.1.4
+pkgrel=1
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"
@@ -8,13 +8,13 @@ license=(GPL-2.0-or-later LGPL-2.1-or-later)
 depends=(la_ow_syscall-dkms)
 makedepends=(git gd python)
 #source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
-source=("https://ftp.gnu.org/gnu/glibc/glibc-2.38.tar.xz"
+source=("https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
     "https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz"
     "glibc-liblol.patch"
     "0001-add-remap-symvers.patch"
     "liblol.conf"
     )
-sha256sums=('fb82998998b2b29965467bc1b69d152e9c307d2cf301c9eafb4555b770ef3fd2'
+sha256sums=('f77bd47cf8170c57365ae7bf86696c118adb3b120d3259c64c502d3dc1e2d926'
             '1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7'
             'b5f654de3db0bc77269b0c5bb24550ec0b01f43cd3b4792fa6f9d5d913cd25e6'
             'de41328fd02b6e3c9ee6db7040cb249245e734fc22ae94039954d738b1650ea9'
@@ -26,9 +26,9 @@ OWTARGET="loongarch64-aosc-linux-gnuow"
 
 prepare() {
   patch -p1 -d patchelf-0.18.0 -i $srcdir/0001-add-remap-symvers.patch
-  patch -p1 -d glibc-2.38 -i $srcdir/glibc-liblol.patch
+  patch -p1 -d glibc-2.39 -i $srcdir/glibc-liblol.patch
 
-  ln -s glibc-2.38 glibc
+  ln -s glibc-2.39 glibc
   ln -s patchelf-0.18.0 patchelf
 
   mkdir -p glibc-build
@@ -65,7 +65,7 @@ build() {
     cd glibc-build
 
     LOL_PREFIX="/opt/lol"
-    GLIBC_VER="2.38"
+    GLIBC_VER="2.39"
     cflags_common="-O2 -g -ffile-prefix-map=${startdir}=."
     ldflags_common="-Wl,-O1,--sort-common,--as-needed -Wl,-build-id=sha1"
 
@@ -122,7 +122,6 @@ package() {
       libBrokenLocale.so.1
       libc.so.6
       libc_malloc_debug.so.0
-      libcrypt.so.1
       libdl.so.2
       libm.so.6
       libnsl.so.1
