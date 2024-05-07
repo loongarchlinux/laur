@@ -1,18 +1,17 @@
 pkgname=lat
 pkgver=1.5.0
-pkgrel=1
-pkgdate=20240426
+pkgrel=2
+pkgdate=20240430
 pkgdesc="Loongson Architecture Translator"
 arch=('loong64')
 url="http://loongnix.cn"
 license=('custom')
-depends=('procps-ng')
-optdepends=(lat-runtime)
+depends=('procps-ng' 'lat-runtime-i386' 'lat-runtime-x86_64')
 provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 OPTIONS=(strip)
 source=(lat-${pkgver}-${pkgdate}.tar.xz)
-sha256sums=('21530b93268ba74b1de4c45a85d3ceaede3bcf4dae023949140d27e4cfe0af34')
+sha256sums=('27f1202b69bdc479ca7b3b1e0d2f1cdf8e78a8594beef85f8af00ae4c5ba4b65')
 
 package() {
   cd $pkgname-$pkgver
