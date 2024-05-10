@@ -1,5 +1,5 @@
 pkgname=liblol
-pkgver=0.1.4
+pkgver=0.1.5
 pkgrel=1
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
@@ -7,17 +7,19 @@ url="https://github.com/AOSC-Dev/liblol"
 license=(GPL-2.0-or-later LGPL-2.1-or-later)
 depends=(la_ow_syscall-dkms)
 makedepends=(git gd python)
-#source=("https://repo.aosc.io/debs/pool/frontier/main/libl/${pkgname}_${pkgver}-0_loongarch64.deb")
+# see https://github.com/AOSC-Dev/aosc-os-abbs/blob/stable/runtime-emulation/liblol/
 source=("https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
     "https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz"
+    "https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz"
     "glibc-liblol.patch"
     "0001-add-remap-symvers.patch"
     "liblol.conf"
     )
 sha256sums=('f77bd47cf8170c57365ae7bf86696c118adb3b120d3259c64c502d3dc1e2d926'
             '1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7'
-            'b5f654de3db0bc77269b0c5bb24550ec0b01f43cd3b4792fa6f9d5d913cd25e6'
-            'de41328fd02b6e3c9ee6db7040cb249245e734fc22ae94039954d738b1650ea9'
+            'e5e1f4caee0a01de2aee26e3138807d6d3ca2b8e67287966d1fefd65e1fd8943'
+            'e0de47803c57b1d56dd35d9669d25d8aba8a5a3d590eb8578f370077f46af09c'
+            '39c0bdea63724792e8073b6bcca616099e9edef8d325c203dae99228fcb24504'
             'f330d80e91d1b7adba14d2a25c8661140dbe2e0d5b1b33ac0c7bc1c29c1e78de')
 install="${pkgname}.install"
 options=(strip !debug)
@@ -30,6 +32,7 @@ prepare() {
 
   ln -s glibc-2.39 glibc
   ln -s patchelf-0.18.0 patchelf
+  ln -s libxcrypt-4.4.36 libxcrypt
 
   mkdir -p glibc-build
   (
@@ -39,13 +42,15 @@ prepare() {
 }
 
 build() {
+
+# build patchelf
   (
    cd patchelf
    ./configure --prefix=/usr
    make
   )
 
-  local _configure_flags=(
+  local _glibc_configure_flags=(
       --prefix=/usr
       --with-headers=/usr/include
       --with-bugurl=https://github.com/loongarchlinux/core/issues
@@ -58,9 +63,11 @@ build() {
       --disable-nscd
       --disable-profile
       --enable-obsolete-api=no
+      --enable-obsolete-rpc
       --disable-werror
   )
 
+# build glibc
   (
     cd glibc-build
 
@@ -74,6 +81,8 @@ slibdir = /usr/lib
 rtlddir = /usr/lib
 sbindir = /usr/bin
 rootsbindir = /usr/bin
+complocaledir = /usr/lib/locale
+localtime-file = /etc/localtime
 sysconfdir = $LOL_PREFIX/etc
 user-defined-trusted-dirs-pre = $LOL_PREFIX/local/preload-lib $LOL_PREFIX/support/lib/$OWTARGET
 user-defined-trusted-dirs = $LOL_PREFIX/local/lib $LOL_PREFIX/lib/$OWTARGET $LOL_PREFIX/lib
@@ -91,7 +100,7 @@ EOF
         --enable-cet \
 	--without-gd \
 	--enable-crypt \
-        "${_configure_flags[@]}"
+        "${_glibc_configure_flags[@]}"
 
     make -O
 
@@ -104,6 +113,21 @@ EOF
     $cflags_common \
     $ldflags_common
   )
+
+# build libxcrypt
+  (
+   cd libxcrypt
+   ./configure \
+       --prefix=/usr \
+       --disable-werror \
+       --enable-shared \
+       --disable-xcrypt-compat-files \
+       --enable-obsolete-api=glibc \
+       CFLAGS="$cflags_common" \
+       LDFLAGS="$ldflags_common"
+   rm -f crypt-symbol-vers.h crypt-symbol-vers.h.stamp
+   make "SYMVER_FLOOR=GLIBC_2.27"
+  )
 }
 
 package() {
@@ -112,13 +136,10 @@ package() {
   mkdir -p ${pkgdir}/opt/lol/support/lib
 
   make -C glibc-build DESTDIR="${pkgdir}" install
-  install -Dm755 glibc-build/ld-linux-loongarch-lp64d.so.1 "${pkgdir}"/usr/lib/ld-linux-loongarch-lp64d.so.1
-  rm -rf ${pkgdir}/usr/lib/{audit,gconv}
-  rm -f ${pkgdir}/usr/lib/{*.a,*.o,*.so}
-  ln -sf /usr/lib/libstdc++.so.6 ${pkgdir}/usr/lib/libstdc++.so.6
 
   fix_libs=(
       ld.so.1
+      libanl.so.1
       libBrokenLocale.so.1
       libc.so.6
       libc_malloc_debug.so.0
@@ -134,12 +155,22 @@ package() {
       libresolv.so.2
       librt.so.1
       libthread_db.so.1
+      libutil.so.1
       )
+
+  pthread_map="GLIBC_2.27=GLIBC_2.0,GLIBC_2.2,GLIBC_2.2.1,GLIBC_2.2.2,GLIBC_2.2.3,GLIBC_2.2.4,GLIBC_2.2.6,GLIBC_2.3,GLIBC_2.3.2,GLIBC_2.3.3,GLIBC_2.3.4,GLIBC_2.4,GLIBC_2.5,GLIBC_2.6,GLIBC_2.7,GLIBC_2.8,GLIBC_2.9,GLIBC_2.10,GLIBC_2.11,GLIBC_2.12,GLIBC_2.13,GLIBC_2.14,GLIBC_2.15,GLIBC_2.16,GLIBC_2.17,GLIBC_2.18,GLIBC_2.19,GLIBC_2.20,GLIBC_2.21,GLIBC_2.22,GLIBC_2.23,GLIBC_2.24,GLIBC_2.25,GLIBC_2.26"
+  libc_map="GLIBC_2.36=GLIBC_2.27,GLIBC_2.28"
 
   for i in libpthread.so.0 libc.so.6; do
     $srcdir/patchelf/src/patchelf \
       --page-size "$(( 16 * 1024 ))" \
-      --remap-symvers "GLIBC_2.27=GLIBC_2.0,GLIBC_2.2,GLIBC_2.2.1,GLIBC_2.2.2,GLIBC_2.2.3,GLIBC_2.2.4,GLIBC_2.2.6,GLIBC_2.3,GLIBC_2.3.2,GLIBC_2.3.3,GLIBC_2.3.4,GLIBC_2.4,GLIBC_2.5,GLIBC_2.6,GLIBC_2.7,GLIBC_2.8,GLIBC_2.9,GLIBC_2.10,GLIBC_2.11,GLIBC_2.12,GLIBC_2.13,GLIBC_2.14,GLIBC_2.15,GLIBC_2.16,GLIBC_2.17,GLIBC_2.18,GLIBC_2.19,GLIBC_2.20,GLIBC_2.21,GLIBC_2.22,GLIBC_2.23,GLIBC_2.24,GLIBC_2.25,GLIBC_2.26,GLIBC_2.27,GLIBC_2.28" \
+      --remap-symvers "$pthread_map" \
+      --also-remap-verneed \
+      "${pkgdir}/usr/lib/$i"
+
+      $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 16 * 1024 ))" \
+      --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
   done
@@ -147,17 +178,32 @@ package() {
   for i in "${fix_libs[@]}"; do
     $srcdir/patchelf/src/patchelf \
       --page-size "$(( 16 * 1024 ))" \
-      --remap-symvers "GLIBC_2.36=GLIBC_2.27,GLIBC_2.28" \
+      --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
   done
 
+  make -C libxcrypt DESTDIR="${pkgdir}" install
+  $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 16 * 1024 ))" \
+      --remap-symvers "$libc_map" \
+      "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
+
+  $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 16 * 1024 ))" \
+      --replace-needed "ld-linux-loongarch-lp64d.so.1" "ld.so.1" \
+      "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
+
+  rm -f ${pkgdir}/usr/lib/{*.a,*.o,*.so}
+  rm -rf ${pkgdir}/usr/lib/{audit,gconv,pkgconfig}
+  install -Dm755 glibc-build/ld-linux-loongarch-lp64d.so.1 "${pkgdir}"/usr/lib/ld-linux-loongarch-lp64d.so.1
+  ln -sf /usr/lib/libstdc++.so.6 ${pkgdir}/usr/lib/libstdc++.so.6
   mv "${pkgdir}/usr/lib/" ${pkgdir}/opt/lol/support/lib/${OWTARGET}
 
   install -Dm644 ${srcdir}/liblol.conf ${pkgdir}/usr/lib/modules-load.d/liblol.conf
   ln -sf /opt/lol/support/lib/${OWTARGET}/ld.so.1 ${pkgdir}/usr/lib/ld.so.1
 
-  rm -rf ${pkgdir}/usr/share/{i18n,info,locale}
+  rm -rf ${pkgdir}/usr/share/{i18n,info,locale,man}
   rm -rf ${pkgdir}/usr/{bin,include}
   rm -rf ${pkgdir}/var
   rm -rf ${pkgdir}/etc

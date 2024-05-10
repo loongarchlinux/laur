@@ -1,8 +1,8 @@
 diff --git a/elf/Makefile b/elf/Makefile
-index c00e2ccfc5..ed1f709c24 100644
+index 5d78b659ce..4f4ec8c25a 100644
 --- a/elf/Makefile
 +++ b/elf/Makefile
-@@ -1355,9 +1355,10 @@ endif
+@@ -1359,9 +1359,10 @@ endif
  $(objpfx)trusted-dirs.h: $(objpfx)trusted-dirs.st; @:
  $(objpfx)trusted-dirs.st: Makefile $(..)Makeconfig
  	$(make-target-directory)
@@ -15,7 +15,7 @@ index c00e2ccfc5..ed1f709c24 100644
  	touch $@
  CPPFLAGS-dl-load.c += -I$(objpfx). -I$(csu-objpfx).
 diff --git a/elf/dl-load.c b/elf/dl-load.c
-index 9a87fda9c9..d11309f2f6 100644
+index ce8fdea302..cdea31f2af 100644
 --- a/elf/dl-load.c
 +++ b/elf/dl-load.c
 @@ -123,6 +123,9 @@ static const size_t system_dirs_len[] =
@@ -55,7 +55,7 @@ index 9a87fda9c9..d11309f2f6 100644
        *aelem++ = pelem;
  
        pelem->what = "system search path";
-@@ -2022,9 +2031,22 @@ _dl_map_object (struct link_map *loader, const char *name,
+@@ -2025,9 +2034,22 @@ _dl_map_object (struct link_map *loader, const char *name,
  
        fd = -1;
  
@@ -79,6 +79,32 @@ index 9a87fda9c9..d11309f2f6 100644
  	{
  	  /* This is the executable's map (if there is one).  Make sure that
  	     we do not look at it twice.  */
+diff --git a/login/Makefile b/login/Makefile
+index 1e22008a61..8700e0e4a8 100644
+--- a/login/Makefile
++++ b/login/Makefile
+@@ -49,7 +49,7 @@ tests := tst-utmp tst-utmpx tst-grantpt tst-ptsname tst-getlogin tst-updwtmpx \
+ # Empty compatibility library for old binaries.
+ extra-libs      := libutil
+ extra-libs-others := $(extra-libs)
+-ifeq ($(have-GLIBC_2.33),yes)
++#ifeq ($(have-GLIBC_2.33),yes)
+ libutil-routines := libutil-compat
+ libutil-shared-only-routines := libutil-compat
+ 
+@@ -57,9 +57,9 @@ libutil-shared-only-routines := libutil-compat
+ # link is not installed.
+ install-lib-ldscripts = libutil.so
+ $(inst_libdir)/libutil.so:
+-else  # not $(have-GLIBC_2.33)
+-libutil-inhibit-o = $(filter-out .o,$(object-suffixes))
+-endif # $(have-GLIBC_2.33)
++#else  # not $(have-GLIBC_2.33)
++#libutil-inhibit-o = $(filter-out .o,$(object-suffixes))
++#endif # $(have-GLIBC_2.33)
+ 
+ include ../Rules
+ 
 diff --git a/nptl/Versions b/nptl/Versions
 index 3221de89d1..a0df5497ac 100644
 --- a/nptl/Versions
@@ -349,7 +375,7 @@ index 3221de89d1..a0df5497ac 100644
 +  }
 +}
 diff --git a/nptl/old_pthread_cond_destroy.c b/nptl/old_pthread_cond_destroy.c
-index b7cf428653..f6340f36d3 100644
+index 020f68ae44..6c148e6335 100644
 --- a/nptl/old_pthread_cond_destroy.c
 +++ b/nptl/old_pthread_cond_destroy.c
 @@ -20,7 +20,7 @@
@@ -370,7 +396,7 @@ index b7cf428653..f6340f36d3 100644
  	       GLIBC_2_0);
  #endif
 diff --git a/nptl/old_pthread_cond_init.c b/nptl/old_pthread_cond_init.c
-index 01efd33317..2cd57d9ab3 100644
+index 47a593d6f4..9806662c5c 100644
 --- a/nptl/old_pthread_cond_init.c
 +++ b/nptl/old_pthread_cond_init.c
 @@ -20,7 +20,7 @@
@@ -391,7 +417,7 @@ index 01efd33317..2cd57d9ab3 100644
  	       GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_attr_init.c b/nptl/pthread_attr_init.c
-index d55dfa2012..88c7563a78 100644
+index 35188b022e..dcf76b0246 100644
 --- a/nptl/pthread_attr_init.c
 +++ b/nptl/pthread_attr_init.c
 @@ -48,10 +48,10 @@ __pthread_attr_init (pthread_attr_t *attr)
@@ -415,7 +441,7 @@ index d55dfa2012..88c7563a78 100644
 +compat_symbol (libpthread, __pthread_attr_init_2_0, pthread_attr_init, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_attr_setaffinity.c b/nptl/pthread_attr_setaffinity.c
-index 96a060c039..670e58c941 100644
+index ae259c4804..7831def1ae 100644
 --- a/nptl/pthread_attr_setaffinity.c
 +++ b/nptl/pthread_attr_setaffinity.c
 @@ -62,24 +62,24 @@ __pthread_attr_setaffinity_np (pthread_attr_t *attr, size_t cpusetsize,
@@ -449,7 +475,7 @@ index 96a060c039..670e58c941 100644
  	       pthread_attr_setaffinity_np, GLIBC_2_3_3);
  #endif
 diff --git a/nptl/pthread_attr_setstack.c b/nptl/pthread_attr_setstack.c
-index 6eff8bc999..95de1d1f34 100644
+index 362ed504d1..54cf3ac2b1 100644
 --- a/nptl/pthread_attr_setstack.c
 +++ b/nptl/pthread_attr_setstack.c
 @@ -53,10 +53,10 @@ __pthread_attr_setstack (pthread_attr_t *attr, void *stackaddr,
@@ -466,7 +492,7 @@ index 6eff8bc999..95de1d1f34 100644
  compat_symbol (libpthread, __pthread_attr_setstack, pthread_attr_setstack,
  	       GLIBC_2_2);
 diff --git a/nptl/pthread_attr_setstacksize.c b/nptl/pthread_attr_setstacksize.c
-index 75eb3a87da..91f89fe2e9 100644
+index c5aeba1f7a..c851766477 100644
 --- a/nptl/pthread_attr_setstacksize.c
 +++ b/nptl/pthread_attr_setstacksize.c
 @@ -45,7 +45,7 @@ versioned_symbol (libc, __pthread_attr_setstacksize,
@@ -479,7 +505,7 @@ index 75eb3a87da..91f89fe2e9 100644
  compat_symbol (libpthread, __pthread_attr_setstacksize,
  	       pthread_attr_setstacksize, GLIBC_2_1);
 diff --git a/nptl/pthread_cond_broadcast.c b/nptl/pthread_cond_broadcast.c
-index 7409958394..008eeadb1c 100644
+index aada91639a..c2b5e61bf2 100644
 --- a/nptl/pthread_cond_broadcast.c
 +++ b/nptl/pthread_cond_broadcast.c
 @@ -86,7 +86,7 @@ ___pthread_cond_broadcast (pthread_cond_t *cond)
@@ -492,7 +518,7 @@ index 7409958394..008eeadb1c 100644
  libc_hidden_ver (___pthread_cond_broadcast, __pthread_cond_broadcast)
  #ifndef SHARED
 diff --git a/nptl/pthread_cond_destroy.c b/nptl/pthread_cond_destroy.c
-index 98c12c831b..b014acc30e 100644
+index 0bbe406407..4a70452014 100644
 --- a/nptl/pthread_cond_destroy.c
 +++ b/nptl/pthread_cond_destroy.c
 @@ -58,5 +58,5 @@ __pthread_cond_destroy (pthread_cond_t *cond)
@@ -503,7 +529,7 @@ index 98c12c831b..b014acc30e 100644
 +versioned_symbol (libpthread, __pthread_cond_destroy,
  		  pthread_cond_destroy, GLIBC_2_3_2);
 diff --git a/nptl/pthread_cond_init.c b/nptl/pthread_cond_init.c
-index 288299577b..f73d0ea66c 100644
+index 59b38bc59e..8b3ed55a8d 100644
 --- a/nptl/pthread_cond_init.c
 +++ b/nptl/pthread_cond_init.c
 @@ -49,5 +49,5 @@ __pthread_cond_init (pthread_cond_t *cond, const pthread_condattr_t *cond_attr)
@@ -514,7 +540,7 @@ index 288299577b..f73d0ea66c 100644
 +versioned_symbol (libpthread, __pthread_cond_init,
  		  pthread_cond_init, GLIBC_2_3_2);
 diff --git a/nptl/pthread_cond_wait.c b/nptl/pthread_cond_wait.c
-index 806c432d13..cff09c8595 100644
+index 66786c7b90..2597c3dd4d 100644
 --- a/nptl/pthread_cond_wait.c
 +++ b/nptl/pthread_cond_wait.c
 @@ -618,7 +618,7 @@ ___pthread_cond_wait (pthread_cond_t *cond, pthread_mutex_t *mutex)
@@ -536,7 +562,7 @@ index 806c432d13..cff09c8595 100644
  libc_hidden_ver (___pthread_cond_timedwait, __pthread_cond_timedwait)
  #ifndef SHARED
 diff --git a/nptl/pthread_detach.c b/nptl/pthread_detach.c
-index 741c3c5884..f911be77a9 100644
+index 25eea5263b..c5bea777d3 100644
 --- a/nptl/pthread_detach.c
 +++ b/nptl/pthread_detach.c
 @@ -59,5 +59,5 @@ strong_alias (___pthread_detach, __pthread_detach)
@@ -547,7 +573,7 @@ index 741c3c5884..f911be77a9 100644
 +compat_symbol (libpthread, ___pthread_detach, pthread_detach, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_getaffinity.c b/nptl/pthread_getaffinity.c
-index b9483537b0..e20271835a 100644
+index 823c4d6d56..0bd2b315f6 100644
 --- a/nptl/pthread_getaffinity.c
 +++ b/nptl/pthread_getaffinity.c
 @@ -41,22 +41,22 @@ __pthread_getaffinity_np (pthread_t th, size_t cpusetsize, cpu_set_t *cpuset)
@@ -579,7 +605,7 @@ index b9483537b0..e20271835a 100644
  	       GLIBC_2_3_3);
  #endif
 diff --git a/nptl/pthread_getattr_np.c b/nptl/pthread_getattr_np.c
-index 65647bda57..a740355c93 100644
+index 1e91874767..03306fc690 100644
 --- a/nptl/pthread_getattr_np.c
 +++ b/nptl/pthread_getattr_np.c
 @@ -205,10 +205,10 @@ __pthread_getattr_np (pthread_t thread_id, pthread_attr_t *attr)
@@ -597,7 +623,7 @@ index 65647bda57..a740355c93 100644
  	       pthread_getattr_np, GLIBC_2_2_3);
  #endif
 diff --git a/nptl/pthread_join.c b/nptl/pthread_join.c
-index 2f661039a7..37f16405a5 100644
+index 31f8036859..7eb41b647c 100644
 --- a/nptl/pthread_join.c
 +++ b/nptl/pthread_join.c
 @@ -24,12 +24,12 @@ ___pthread_join (pthread_t threadid, void **thread_return)
@@ -616,7 +642,7 @@ index 2f661039a7..37f16405a5 100644
 +compat_symbol (libpthread, ___pthread_join, pthread_join, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_kill.c b/nptl/pthread_kill.c
-index 44e45a4e23..c5d2354fe1 100644
+index 71e5a7bf5b..1a36c0bf73 100644
 --- a/nptl/pthread_kill.c
 +++ b/nptl/pthread_kill.c
 @@ -93,7 +93,7 @@ __pthread_kill (pthread_t threadid, int signo)
@@ -637,7 +663,7 @@ index 44e45a4e23..c5d2354fe1 100644
  # endif
  #endif
 diff --git a/nptl/pthread_mutex_destroy.c b/nptl/pthread_mutex_destroy.c
-index dbb63600f6..ae79c36dfb 100644
+index f866dda1c8..9e300c0675 100644
 --- a/nptl/pthread_mutex_destroy.c
 +++ b/nptl/pthread_mutex_destroy.c
 @@ -40,7 +40,7 @@ ___pthread_mutex_destroy (pthread_mutex_t *mutex)
@@ -650,7 +676,7 @@ index dbb63600f6..ae79c36dfb 100644
  libc_hidden_ver (___pthread_mutex_destroy, __pthread_mutex_destroy)
  #ifndef SHARED
 diff --git a/nptl/pthread_mutexattr_destroy.c b/nptl/pthread_mutexattr_destroy.c
-index 89ce6cad62..c5890eddf3 100644
+index cdb360213e..ef86cec879 100644
 --- a/nptl/pthread_mutexattr_destroy.c
 +++ b/nptl/pthread_mutexattr_destroy.c
 @@ -23,11 +23,11 @@ ___pthread_mutexattr_destroy (pthread_mutexattr_t *attr)
@@ -669,7 +695,7 @@ index 89ce6cad62..c5890eddf3 100644
                 __pthread_mutexattr_destroy, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_setattr_default_np.c b/nptl/pthread_setattr_default_np.c
-index 27b87b5711..02122b5b3a 100644
+index 0c6d479b05..00cd34fe09 100644
 --- a/nptl/pthread_setattr_default_np.c
 +++ b/nptl/pthread_setattr_default_np.c
 @@ -81,10 +81,10 @@ __pthread_setattr_default_np (const pthread_attr_t *in)
@@ -686,7 +712,7 @@ index 27b87b5711..02122b5b3a 100644
  #endif
  
 diff --git a/nptl/pthread_sigmask.c b/nptl/pthread_sigmask.c
-index 409f4467e8..15bad2e984 100644
+index a39f3ca335..75c429e6db 100644
 --- a/nptl/pthread_sigmask.c
 +++ b/nptl/pthread_sigmask.c
 @@ -46,8 +46,8 @@ __pthread_sigmask (int how, const sigset_t *newmask, sigset_t *oldmask)
@@ -702,7 +728,7 @@ index 409f4467e8..15bad2e984 100644
 +compat_symbol (libpthread, __pthread_sigmask_2, pthread_sigmask, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_testcancel.c b/nptl/pthread_testcancel.c
-index 38b5a2d4bc..0246b7323f 100644
+index a0197b5312..31ee172620 100644
 --- a/nptl/pthread_testcancel.c
 +++ b/nptl/pthread_testcancel.c
 @@ -30,12 +30,12 @@ ___pthread_testcancel (void)
@@ -721,7 +747,7 @@ index 38b5a2d4bc..0246b7323f 100644
 +compat_symbol (libpthread, ___pthread_testcancel, pthread_testcancel, GLIBC_2_0);
  #endif
 diff --git a/nptl/pthread_tryjoin.c b/nptl/pthread_tryjoin.c
-index 97137c0702..dde45f55ca 100644
+index 7e4ad5ac4b..0944e5b87e 100644
 --- a/nptl/pthread_tryjoin.c
 +++ b/nptl/pthread_tryjoin.c
 @@ -31,8 +31,8 @@ __pthread_tryjoin_np (pthread_t threadid, void **thread_return)
@@ -758,7 +784,7 @@ index ccde4b59b4..16008b0858 100644
  }
  
 diff --git a/scripts/versions.awk b/scripts/versions.awk
-index eeb7a10654..6b30e74561 100644
+index ef1600bc03..05df6d7c32 100644
 --- a/scripts/versions.awk
 +++ b/scripts/versions.awk
 @@ -89,7 +89,7 @@ function ord(c) {
@@ -771,7 +797,7 @@ index eeb7a10654..6b30e74561 100644
  
  # Some targets do not set the ABI baseline for libdl.  As a result,
 diff --git a/sunrpc/Makefile b/sunrpc/Makefile
-index ec2ea04ca9..015be5be3f 100644
+index b63050142b..b72751ef31 100644
 --- a/sunrpc/Makefile
 +++ b/sunrpc/Makefile
 @@ -22,7 +22,7 @@ subdir	:= sunrpc
@@ -790,8 +816,18 @@ index ec2ea04ca9..015be5be3f 100644
 -endif
 +#endif
  
- tests = tst-xdrmem tst-xdrmem2 test-rpcent tst-udp-error tst-udp-timeout \
+ tests = tst-xdrmem tst-xdrmem2 tst-udp-error tst-udp-timeout \
    tst-udp-nonblocking tst-bug22542 tst-bug28768
+diff --git a/sysdeps/loongarch/fpu/e_scalbf.c b/sysdeps/loongarch/fpu/e_scalbf.c
+index 9f05485236..7c0395fbb5 100644
+--- a/sysdeps/loongarch/fpu/e_scalbf.c
++++ b/sysdeps/loongarch/fpu/e_scalbf.c
+@@ -57,4 +57,4 @@ __ieee754_scalbf (float x, float fn)
+ 
+   return x;
+ }
+-libm_alias_finite (__ieee754_scalb, __scalb)
++libm_alias_finite (__ieee754_scalbf, __scalbf)
 diff --git a/sysdeps/loongarch/nptl/pthread_sigmask.c b/sysdeps/loongarch/nptl/pthread_sigmask.c
 new file mode 100644
 index 0000000000..707787a67a
@@ -871,6 +907,18 @@ index 0000000000..707787a67a
 +#endif
 +
 +#endif
+diff --git a/sysdeps/nptl/Makeconfig b/sysdeps/nptl/Makeconfig
+index 9b960e49ea..05eef0df14 100644
+--- a/sysdeps/nptl/Makeconfig
++++ b/sysdeps/nptl/Makeconfig
+@@ -20,6 +20,7 @@
+ 
+ have-thread-library = yes
+ have-anl-library = $(have-GLIBC_2.34)
++have-anl-library = yes
+ 
+ # The thread library is integrated.
+ shared-thread-library =
 diff --git a/sysdeps/unix/sysv/linux/loongarch/Makefile b/sysdeps/unix/sysv/linux/loongarch/Makefile
 index c84a1762ed..4d1d5d0e6d 100644
 --- a/sysdeps/unix/sysv/linux/loongarch/Makefile
@@ -947,17 +995,25 @@ index 0000000000..6b3dd0d12e
 +    getcontext;
 +  }
 +}
+diff --git a/sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h b/sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h
+new file mode 100644
+index 0000000000..12f039ddd5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h
+@@ -0,0 +1 @@
++#define __OW_NSIG 128
 diff --git a/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h b/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h
 new file mode 100644
-index 0000000000..522f084657
+index 0000000000..9abda0a70b
 --- /dev/null
 +++ b/sysdeps/unix/sysv/linux/loongarch/bits/signum-arch.h
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,7 @@
 +#include<sysdeps/unix/sysv/linux/bits/signum-arch.h>
 +
 +#ifdef LA_OW_COMPACT
++#include <sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h>
 +#undef __SIGRTMAX
-+#define __SIGRTMAX 128
++#define __SIGRTMAX __OW_NSIG
 +#endif
 diff --git a/sysdeps/unix/sysv/linux/loongarch/brk.c b/sysdeps/unix/sysv/linux/loongarch/brk.c
 new file mode 100644
@@ -1002,6 +1058,50 @@ index 0000000000..1c7586a4b5
 +++ b/sysdeps/unix/sysv/linux/loongarch/epoll_pwait2.c
 @@ -0,0 +1 @@
 +#include<sysdeps/unix/sysv/linux/epoll_pwait2.c>
+diff --git a/sysdeps/unix/sysv/linux/loongarch/errlist-compat-data.h b/sysdeps/unix/sysv/linux/loongarch/errlist-compat-data.h
+new file mode 100644
+index 0000000000..5998ae2501
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/errlist-compat-data.h
+@@ -0,0 +1,8 @@
++#include <errlist-compat.h>
++
++// See sysdeps/unix/sysv/linux/loongarch/Versions of ow glibc 2.28
++// They copied from mips, so we also copy the corresponding
++// errlist-compat statements from mips
++#if SHLIB_COMPAT (libc, GLIBC_2_2, GLIBC_2_32)
++DEFINE_COMPAT_ERRLIST (1134, GLIBC_2_1)
++#endif
+diff --git a/sysdeps/unix/sysv/linux/loongarch/fstat64.c b/sysdeps/unix/sysv/linux/loongarch/fstat64.c
+new file mode 100644
+index 0000000000..46bbf62460
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/fstat64.c
+@@ -0,0 +1,5 @@
++#include <sysdeps/unix/sysv/linux/fstat64.c>
++
++// In glibc 2.39, fstat64 changed its implementation to use fstat() in 551101e
++// However, on loongarch64, it still calls __fstatat64_time64, unchanged.
++// So the magic will happen there, no magic is needed here.
+diff --git a/sysdeps/unix/sysv/linux/loongarch/fstatat64.c b/sysdeps/unix/sysv/linux/loongarch/fstatat64.c
+new file mode 100644
+index 0000000000..a437eeaa6d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/fstatat64.c
+@@ -0,0 +1,13 @@
++#include <shlib-compat.h>
++
++#if LIB_COMPAT(libc, GLIBC_2_27, GLIBC_2_36)
++# include <kernel-features.h>
++# ifdef __ASSUME_STATX
++#  undef __ASSUME_STATX
++# endif
++// Hack: force use statx for fstatat64 even __NR_newfstatat is available
++# define STAT_HAS_TIME32
++# include "ow_syscall_nr.h"
++#endif
++
++#include <sysdeps/unix/sysv/linux/fstatat64.c>
 diff --git a/sysdeps/unix/sysv/linux/loongarch/fxstat64.c b/sysdeps/unix/sysv/linux/loongarch/fxstat64.c
 new file mode 100644
 index 0000000000..f7174ea844
@@ -1143,7 +1243,7 @@ index 0000000000..720f12a084
 +
 +#endif /* LIB_COMPAT(libc, GLIBC_2_4, GLIBC_2_33)  */
 diff --git a/sysdeps/unix/sysv/linux/loongarch/getcontext.S b/sysdeps/unix/sysv/linux/loongarch/getcontext.S
-index d04e33c001..88f4aa92e2 100644
+index 79e14d8c90..3665f8ff35 100644
 --- a/sysdeps/unix/sysv/linux/loongarch/getcontext.S
 +++ b/sysdeps/unix/sysv/linux/loongarch/getcontext.S
 @@ -16,6 +16,7 @@
@@ -1244,7 +1344,7 @@ index 0000000000..ab561ce04e
 +
 +#endif /* LIB_COMPAT  */
 diff --git a/sysdeps/unix/sysv/linux/loongarch/makecontext.c b/sysdeps/unix/sysv/linux/loongarch/makecontext.c
-index a17f6ccc51..b17fdc5dc0 100644
+index 4215cd0d48..fef1e3dab8 100644
 --- a/sysdeps/unix/sysv/linux/loongarch/makecontext.c
 +++ b/sysdeps/unix/sysv/linux/loongarch/makecontext.c
 @@ -17,6 +17,7 @@
@@ -1444,7 +1544,7 @@ index 0000000000..21432e423f
 +#endif
 diff --git a/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h b/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h
 new file mode 100644
-index 0000000000..a74c224039
+index 0000000000..847c71cf80
 --- /dev/null
 +++ b/sysdeps/unix/sysv/linux/loongarch/ow_sigop.h
 @@ -0,0 +1,16 @@
@@ -1458,7 +1558,7 @@ index 0000000000..a74c224039
 +extern int __ow_sigandset (sigset_t *__set, const sigset_t *__left, const sigset_t *__right);
 +extern int __ow_sigorset (sigset_t *__set, const sigset_t *__left, const sigset_t *__right);
 +
-+#define __OW_NSIG 128
++#include <sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h>
 +
 +static inline void __ow_clear_unused_bits(sigset_t *set)
 +{
@@ -1720,7 +1820,7 @@ index 0000000000..224a88aa90
 @@ -0,0 +1 @@
 +#include<sysdeps/unix/sysv/linux/pselect.c>
 diff --git a/sysdeps/unix/sysv/linux/loongarch/setcontext.S b/sysdeps/unix/sysv/linux/loongarch/setcontext.S
-index d01409af46..5ca9467b17 100644
+index e1ce49814c..6b4a9af4db 100644
 --- a/sysdeps/unix/sysv/linux/loongarch/setcontext.S
 +++ b/sysdeps/unix/sysv/linux/loongarch/setcontext.S
 @@ -15,6 +15,8 @@
@@ -2254,6 +2354,18 @@ index 0000000000..ae7d9b624d
 +
 +#undef sigismember
 +versioned_symbol(libc, __nw_sigismember, sigismember, GLIBC_2_36);
+diff --git a/sysdeps/unix/sysv/linux/loongarch/siglist-compat.h b/sysdeps/unix/sysv/linux/loongarch/siglist-compat.h
+new file mode 100644
+index 0000000000..4b89f5fee8
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/loongarch/siglist-compat.h
+@@ -0,0 +1,6 @@
++#include <siglist-compat-def.h>
++#include <sysdeps/unix/sysv/linux/loongarch/bits/ow_nsig.h>
++
++#if SHLIB_COMPAT (libc, GLIBC_2_3_3, GLIBC_2_32)
++DEFINE_COMPAT_SIGLIST (__OW_NSIG, GLIBC_2_3_3)
++#endif
 diff --git a/sysdeps/unix/sysv/linux/loongarch/signalfd.c b/sysdeps/unix/sysv/linux/loongarch/signalfd.c
 new file mode 100644
 index 0000000000..dc0ab6db79
@@ -2404,7 +2516,7 @@ index 0000000000..3b57a461d1
 +
 +#include <sysdeps/unix/sysv/linux/statx_cp.c>
 diff --git a/sysdeps/unix/sysv/linux/loongarch/swapcontext.S b/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
-index e58d5c0cf4..d69540efa5 100644
+index e8029b4363..8e082f4ec0 100644
 --- a/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
 +++ b/sysdeps/unix/sysv/linux/loongarch/swapcontext.S
 @@ -16,6 +16,7 @@
