@@ -1,23 +1,29 @@
 pkgname=lat
-pkgver=1.5.1
+pkgver=1.5.3
+_pkgver=${pkgver}-rc1
 pkgrel=1
-pkgdate=20240510
 pkgdesc="Loongson Architecture Translator"
 arch=('loong64')
-url="http://loongnix.cn"
+url="https://github.com/deuso/latx-build"
 license=('custom')
 depends=('procps-ng' 'lat-runtime-i386' 'lat-runtime-x86_64')
 provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 OPTIONS=(strip)
-source=(lat-${pkgver}-${pkgdate}.tar.xz)
-sha256sums=('4322da392851bfb5e6214fe0b78edf72753f5846ff896325b91aa156ab6c5128')
+source=("lat-${_pkgver}.tar.gz::https://github.com/deuso/latx-build/releases/download/${_pkgver}/${_pkgver}.tar.gz")
+sha256sums=('8b7b1a746af2b7c3f8c9c18804c779d2cf6f6e97ec99b656f5f72ada381fff2d')
 
 package() {
-  cd $pkgname-$pkgver
-
-  cp -r * ${pkgdir}
+  cd $_pkgver
 
   echo "vm.mmap_min_addr = 65536" > mmap_min_addr.conf
+  echo ":lat-i386-static:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x03\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/lat-i386-static:" > lat-i386-static.conf
+  echo ":lat-x86_64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/lat-x86_64:" > lat-x86_64.conf
+
+  install -Dm755 lat-Arch-nw/bin/latx-x86_64 ${pkgdir}/usr/bin/lat-x86_64
+  install -Dm755 lat-Arch-nw/bin/latx-i386 ${pkgdir}/usr/bin/lat-i386-static
+
   install -Dm644 mmap_min_addr.conf ${pkgdir}/usr/lib/sysctl.d/mmap_min_addr.conf
+  install -Dm644 lat-i386-static.conf ${pkgdir}/usr/lib/binfmt.d/lat-i386-static.conf
+  install -Dm644 lat-x86_64.conf ${pkgdir}/usr/lib/binfmt.d/lat-x86_64.conf
 }
