@@ -1,6 +1,6 @@
 pkgname=wine7.19
 pkgver=7.19
-pkgrel=2
+pkgrel=3
 pkgdesc="A compatibility layer for running Windows programs"
 arch=('x86_64' 'loong64')
 url="https://wiki.winehq.org/Mono"
@@ -9,8 +9,11 @@ depends=('lat-runtime')
 conflicts=('wine-7.20')
 replaces=('wine-7.20')
 optdepends=('wine-mono' 'wine-gecko')
-source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/637d231f5e89d6b114a7162f6932e74f/wine-$pkgver.tar.xz)
-sha256sums=('6716cd7e61493c787b19550482d8b86bc8fefb3330583beaf5d8b083c51899ca')
+source=(http://public.loongarch.dev/sources/wine/wine-$pkgver.tar.xz/637d231f5e89d6b114a7162f6932e74f/wine-$pkgver.tar.xz
+    wine.conf
+)
+sha256sums=('6716cd7e61493c787b19550482d8b86bc8fefb3330583beaf5d8b083c51899ca'
+            '6dfdefec305024ca11f35ad7536565f5551f09119dda2028f194aee8f77077a4')
 options=(!strip)
 
 package() {
@@ -21,4 +24,5 @@ package() {
       cp -r wine-${pkgver}/$i ${pkgdir}/opt/wine-${pkgver}
     fi
   done
+  install -Dm644 wine.conf ${pkgdir}/usr/lib/binfmt.d/wine.conf
 }
