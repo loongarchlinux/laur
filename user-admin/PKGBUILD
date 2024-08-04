@@ -2,7 +2,7 @@
 
 pkgname=user-admin
 pkgver=1.7.0
-pkgrel=2
+pkgrel=3
 pkgdesc="A log viewer for the systemd journal"
 url="https://wiki.gnome.org/Apps/Logs"
 arch=(loong64 x86_64)
