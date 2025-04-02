@@ -1,5 +1,5 @@
 pkgname=la_ow_syscall-dkms
-pkgver=r28.492c16d
+pkgver=r28.42f036d
 pkgrel=1
 pkgdesc="loongarch old-world syscall module sources"
 arch=(any)
@@ -7,7 +7,7 @@ url="https://github.com/AOSC-Dev/la_ow_syscall"
 license=(GPL2)
 makedepends=(git)
 depends=(dkms linux-headers)
-source=("git+https://github.com/AOSC-Dev/la_ow_syscall.git#branch=for-6.11"
+source=("git+https://github.com/yetist/la_ow_syscall.git#branch=devel"
     dkms.conf
     )
 sha256sums=('SKIP'
