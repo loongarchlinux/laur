@@ -1,0 +1,23 @@
+pkgname=devtools-laur
+pkgver=1.0
+pkgrel=1
+pkgdesc='Tools for ArchLoong laur repo package maintainers'
+arch=('loong64')
+license=('GPL-3.0-or-later')
+url='https://gitlab.archlinux.org/archlinux/devtools'
+depends=("devtools-loong64")
+source=(
+  laur.conf
+  laur-testing.conf
+  laur-staging.conf)
+sha256sums=('29114434e926fc9404b9efcc8bcfaf16ef1a2df3f96c2043c1118ff95ebaf65f'
+            '015379cdde2113d028f1f15da71221c5b5af97f1765d09229330b9108c766f27'
+            '2714ba6bff1b27a764dd3f4e9df838aaec63df1968b97e45a1cb5a6fde485280')
+
+package() {
+  mkdir -p $pkgdir/usr/bin
+  for repo in laur laur-testing laur-staging; do
+    ln -sf archbuild "$pkgdir"/usr/bin/${repo}-loong64-build
+    install -Dm644 $repo.conf "$pkgdir"/usr/share/devtools/pacman.conf.d/${repo}-loong64.conf
+  done
+}
