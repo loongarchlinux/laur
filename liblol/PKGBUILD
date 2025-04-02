@@ -1,38 +1,80 @@
 pkgname=liblol
-pkgver=0.1.5
+pkgver=0.1.9
 pkgrel=1
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
 url="https://github.com/AOSC-Dev/liblol"
 license=(GPL-2.0-or-later LGPL-2.1-or-later)
-depends=(la_ow_syscall-dkms)
+depends=(la_ow_syscall-dkms glibc)
 makedepends=(git gd python)
+
+glibc_version=2.41
+patchelf_version=0.18.0
+libxcrypt_version=4.4.38
+
 # see https://github.com/AOSC-Dev/aosc-os-abbs/blob/stable/runtime-emulation/liblol/
-source=("https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
-    "https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz"
-    "https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz"
-    "glibc-liblol.patch"
-    "0001-add-remap-symvers.patch"
+source=("https://ftp.gnu.org/gnu/glibc/glibc-${glibc_version}.tar.xz"
+    "https://github.com/NixOS/patchelf/releases/download/${patchelf_version}/patchelf-${patchelf_version}.tar.gz"
+    "https://github.com/besser82/libxcrypt/releases/download/v${libxcrypt_version}/libxcrypt-${libxcrypt_version}.tar.xz"
     "liblol.conf"
     )
-sha256sums=('f77bd47cf8170c57365ae7bf86696c118adb3b120d3259c64c502d3dc1e2d926'
-            '1451d01ee3a21100340aed867d0b799f46f0b1749680028d38c3f5d0128fb8a7'
-            'e5e1f4caee0a01de2aee26e3138807d6d3ca2b8e67287966d1fefd65e1fd8943'
-            'e0de47803c57b1d56dd35d9669d25d8aba8a5a3d590eb8578f370077f46af09c'
-            '39c0bdea63724792e8073b6bcca616099e9edef8d325c203dae99228fcb24504'
-            'f330d80e91d1b7adba14d2a25c8661140dbe2e0d5b1b33ac0c7bc1c29c1e78de')
+glibc_patches=(
+    0001-add-old-world-abi-compatibility.patch
+    0002-add-sigset-ops.patch
+    0003-add-signal-functions.patch
+    0004-add-sigaction-ucontext-compat.patch
+    0005-add-stubs-for-signal-related-io-funcs.patch
+    0006-add-syscall-fallback-for-stat-at.patch
+    0007-add-more-pthread-symbols.patch
+    0008-remove-clone3-for-compatibility-with-qq.patch
+    0009-prepend-trusted-dirs.patch
+    0010-Add-___brk_addr-symbol.patch
+    0011-siglist-errlist-add-compact-statements.patch
+    )
+patchelf_patches=(
+    0001-add-remap-symvers.patch
+    )
+for i in ${glibc_patches[@]}; do
+  source+=("https://github.com/AOSC-Dev/liblol/raw/refs/heads/master/autobuild/patches/glibc/$i")
+done
+for i in ${patchelf_patches[@]}; do
+  source+=("https://github.com/AOSC-Dev/liblol/raw/refs/heads/master/autobuild/patches/patchelf/$i")
+done
+
+sha256sums=('a5a26b22f545d6b7d7b3dd828e11e428f24f4fac43c934fb071b6a7d0828e901'
+            '64de10e4c6b8b8379db7e87f58030f336ea747c0515f381132e810dbf84a86e7'
+            '80304b9c306ea799327f01d9a7549bdb28317789182631f1b54f4511b4206dd6'
+            'f330d80e91d1b7adba14d2a25c8661140dbe2e0d5b1b33ac0c7bc1c29c1e78de'
+            'c20b882be2b2ecbaac8e7bef1ce9919dfa4be08eb5b13cbd4917979549aafba0'
+            'e33635a3b6b38f129d441faead7a58c1a645da31e8ff1e1d556fde4f08586cf4'
+            '7d4f6b0c52f338ed6b82b107587a2523028eee3db36cc1b60b23ce5be853de66'
+            '7af161800885674e7d41274265426f06c51c831963a3fb1faf83410f563c3bc8'
+            'c5bf3b88150ef9d73fa19e86078f7cd591fa41b2075b5f5e70842417eeb6c8dc'
+            '462a330c9b07fa780db07001d4c09f4446f99f3399a33318f3ff468939399e78'
+            'd037013e02a85bfc36a23798edca7954437d25d7fa80d5fa005e5b416bb61251'
+            'c6fdd6de96187e4d5fe904dad844d8afd911a40bf022abbeb259f06116084713'
+            '253c9b18544d92fd1bb6a840c82c9713b11394658c71643bca5a8e011c7a30ca'
+            '0055ded73723ac97025a38d50098d4628123618f1874b8eacd2231b7fb527b08'
+            'c0417d8214e5b1a5227dc749d65fe01e4eab4f76a6591d437a40a84298b6f3f6'
+            '39c0bdea63724792e8073b6bcca616099e9edef8d325c203dae99228fcb24504')
 install="${pkgname}.install"
 options=(strip !debug)
 
-OWTARGET="loongarch64-aosc-linux-gnuow"
+OWTARGET="loongarch64-arch-linux-gnuow"
 
 prepare() {
-  patch -p1 -d patchelf-0.18.0 -i $srcdir/0001-add-remap-symvers.patch
-  patch -p1 -d glibc-2.39 -i $srcdir/glibc-liblol.patch
+  for i in ${glibc_patches[@]}; do
+    msg "Applying $i ..."
+    patch -p1 --ignore-whitespace -d glibc-${glibc_version} -i $srcdir/$i
+  done
+  for i in ${patchelf_patches[@]}; do
+    msg "Applying $i ..."
+    patch -p1 --ignore-whitespace -d patchelf-${patchelf_version} -i $srcdir/$i
+  done
 
-  ln -s glibc-2.39 glibc
-  ln -s patchelf-0.18.0 patchelf
-  ln -s libxcrypt-4.4.36 libxcrypt
+  ln -s glibc-${glibc_version} glibc
+  ln -s patchelf-${patchelf_version} patchelf
+  ln -s libxcrypt-${libxcrypt_version} libxcrypt
 
   mkdir -p glibc-build
   (
@@ -72,7 +114,6 @@ build() {
     cd glibc-build
 
     LOL_PREFIX="/opt/lol"
-    GLIBC_VER="2.39"
     cflags_common="-O2 -g -ffile-prefix-map=${startdir}=."
     ldflags_common="-Wl,-O1,--sort-common,--as-needed -Wl,-build-id=sha1"
 
@@ -104,7 +145,7 @@ EOF
 
     make -O
 
-    echo "Generating a dummy ld-linux-loongarch-lp64d.so.1 ..."
+    msg "Generating a dummy ld-linux-loongarch-lp64d.so.1 ..."
     gcc -shared \
     -x c /dev/null \
     -o ld-linux-loongarch-lp64d.so.1 \
@@ -163,13 +204,13 @@ package() {
 
   for i in libpthread.so.0 libc.so.6; do
     $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 16 * 1024 ))" \
+      --page-size "$(( 64 * 1024 ))" \
       --remap-symvers "$pthread_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
 
-      $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 16 * 1024 ))" \
+    $srcdir/patchelf/src/patchelf \
+      --page-size "$(( 64 * 1024 ))" \
       --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
@@ -177,7 +218,7 @@ package() {
 
   for i in "${fix_libs[@]}"; do
     $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 16 * 1024 ))" \
+      --page-size "$(( 64 * 1024 ))" \
       --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
@@ -185,12 +226,12 @@ package() {
 
   make -C libxcrypt DESTDIR="${pkgdir}" install
   $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 16 * 1024 ))" \
+      --page-size "$(( 64 * 1024 ))" \
       --remap-symvers "$libc_map" \
       "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
 
   $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 16 * 1024 ))" \
+      --page-size "$(( 64 * 1024 ))" \
       --replace-needed "ld-linux-loongarch-lp64d.so.1" "ld.so.1" \
       "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
 
