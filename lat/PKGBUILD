@@ -1,29 +1,96 @@
 pkgname=lat
-pkgver=1.5.3
-_pkgver=${pkgver}-rc1
+pkgver=1.6.1
+_commit=d9e3dddffd68b456e4090a2d12053fb57624f3b0 #tag 1.6.1
 pkgrel=1
 pkgdesc="Loongson Architecture Translator"
 arch=('loong64')
-url="https://github.com/deuso/latx-build"
-license=('custom')
+url="https://github.com/lat-opensource/lat"
+license=('GPLv2+')
 depends=('procps-ng' 'lat-runtime-i386' 'lat-runtime-x86_64')
+makedepends=(
+  alsa-lib
+  brltty
+  bzip2
+  cairo
+  capstone
+  curl
+  dtc
+  fuse3
+  gcc-libs
+  gdk-pixbuf2
+  git
+  glib2
+  glib2-devel
+  glusterfs
+  gnutls
+  gtk3
+  jack
+  keyutils
+  libaio
+  libbpf
+  libcacard
+  libcap-ng
+  libdrm
+  libepoxy
+  libiscsi
+  libnfs
+  libpipewire
+  libpng
+  libpulse
+  libsasl
+  libseccomp
+  libslirp
+  libssh
+  liburing
+  libusb
+  libx11
+  libxdp
+  libxml2
+  libxkbcommon
+  lzo
+  mesa
+  meson
+  multipath-tools
+  ncurses
+  ndctl
+  numactl
+  openssl-static
+  pam
+  pcre2
+  python
+  python-distlib
+  python-setuptools
+  python-pip
+  python-sphinx
+  python-sphinx_rtd_theme
+  sdl2
+  sdl2_image
+  snappy
+  spice-protocol
+  spice
+  systemd
+  usbredir
+  vde2
+  virglrenderer
+  vte3
+  zlib
+  zstd
+)
 provides=(qemu-user-binfmt-provider)
 conflicts=(qemu-user-binfmt-provider)
 OPTIONS=(strip)
-source=("lat-${_pkgver}.tar.gz::https://github.com/deuso/latx-build/releases/download/${_pkgver}/${_pkgver}.tar.gz")
-sha256sums=('8b7b1a746af2b7c3f8c9c18804c779d2cf6f6e97ec99b656f5f72ada381fff2d')
+source=("git+https://github.com/lat-opensource/lat.git#commit=${_commit}")
+sha256sums=('c47c8294976749dd15f4261d317c6b78e6118da6b5b9b72805a0d391da6a7f79')
+
+build() {
+  unset CXXFLAGS
+  unset CFLAGS
+  unset LDFLAGS
+  cd lat
+  ./latxbuild/build-release.sh
+}
 
 package() {
-  cd $_pkgver
-
-  echo "vm.mmap_min_addr = 65536" > mmap_min_addr.conf
-  echo ":lat-i386-static:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x03\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/lat-i386-static:" > lat-i386-static.conf
-  echo ":lat-x86_64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/lat-x86_64:" > lat-x86_64.conf
-
-  install -Dm755 lat-Arch-nw/bin/latx-x86_64 ${pkgdir}/usr/bin/lat-x86_64
-  install -Dm755 lat-Arch-nw/bin/latx-i386 ${pkgdir}/usr/bin/lat-i386-static
-
-  install -Dm644 mmap_min_addr.conf ${pkgdir}/usr/lib/sysctl.d/mmap_min_addr.conf
-  install -Dm644 lat-i386-static.conf ${pkgdir}/usr/lib/binfmt.d/lat-i386-static.conf
-  install -Dm644 lat-x86_64.conf ${pkgdir}/usr/lib/binfmt.d/lat-x86_64.conf
+  cd lat
+  cp -r pkg/lat-$pkgver/* ${pkgdir}/
 }
