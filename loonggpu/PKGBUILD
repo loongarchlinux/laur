@@ -1,0 +1,137 @@
+pkgname=('loonggpu' 'loonggpu-dkms' 'linux-firmware-loonggpu' 'mesa-loonggpu' 'xf86-video-loonggpu')
+pkgbase=loonggpu
+pkgver=1.0.1
+pkgrel=1
+debver=${pkgver}-alpha-lnd25.5
+pkgdesc="Loongson GPU"
+arch=('loong64')
+url="https://loongnix.cn"
+license=('custom')
+options=(strip !debug emptydirs)
+makedepends=('dpkg' 'git')
+source=(
+  "git+https://github.com/AOSC-Tracking/loonggpu-kernel-dkms.git#branch=aosc/v1.0.1-alpha-lnd25.5"
+  "firmware.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/f/firmware-loongson-graphics/firmware-loongson-graphics_${debver}_loong64.deb"
+  "libldrm.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/l/ldrm/libldrm_${debver}_loong64.deb"
+  "gpucomp.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/l/loong-gpucomp/libloong-gpucomp_${debver}_loong64.deb"
+  "loonggl.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/l/loonggl/loonggl_${debver}_loong64.deb"
+  "libedit.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/libe/libedit/libedit2_3.1-20240517-1_loong64.deb"
+  "xf86-video-loonggpu.deb::https://pkg.loongnix.cn/loongnix/25/pool/main/x/xserver-xorg-video-loonggpu/xserver-xorg-video-loonggpu_${debver}_loong64.deb"
+  "0001-support-compressed-firmware-file-like-lg100_cp.bin.z.patch"
+)
+sha256sums=('SKIP'
+  '9fd7550b34b105eb0b6bbdf8750b242a542c75893ee67872738692c519074d0d'
+  'bf4cbb3e43ff8fc184fae757b98f7005236cd107a351396bf1bfc0a27b81c6de'
+  'aadead1040efc076d8b6d71d88f8b7c11888a01b2446d46ee0c662c681075bc3'
+  'b5815a6cc0aef84d742cfd052cb506e148da45d6046c046d4daef9aa96c6fbc9'
+  'f4daef9539da90aee2c4c77208c706edbbd408157a874941df75595f35bd7c60'
+  'c470fd65c61429ca3f80c6cf5d97f2ab6c0b95b015031a3900c4b22f2f5b0591'
+  '11d42dec33a271665c20fc12ea302a508a2b811134c86488a764e8c2f6b6722b')
+noextract=()
+for _source in "${source[@]}"; do
+  if [[ "$_source" =~ deb$ ]]; then
+    noextract+=("${_source%%::*}")
+  fi
+done
+
+# deb_file file source_dir target_dir
+_pick_file() {
+  local p="$1" f="$2" s="$3" d="$4" t
+  t=${p%.deb}
+  dpkg-deb -x ${srcdir}/${p} $t
+  [ -d "${pkgdir}/$d" ] || mkdir -p "${pkgdir}/$d"
+  if [ -L "$t/$s/$f" ]; then
+    cp -a "$t/$s/$f" "${pkgdir}/$d"
+    cp -p $t/$s/$(readlink "$t/$s/$f") "${pkgdir}/$d/$(readlink "$t/$s/$f")"
+    chmod +x "${pkgdir}/$d/$(readlink "$t/$s/$f")"
+  elif [ -d "$t/$s/$f" ]; then
+    cp -rp "$t/$s/$f" "${pkgdir}/$d"
+  else
+    cp -p "$t/$s/$f" "${pkgdir}/$d"
+  fi
+  rm -r $t
+}
+
+# deb_file so_file target_dir
+_pick_lib() {
+  local p="$1" f="$2" d="$3"
+  _pick_file $p $f "/usr/lib/loongarch64-linux-gnu" $d
+}
+
+prepare() {
+  dpkg-deb -x ${srcdir}/firmware.deb _firmware
+  cp _firmware/usr/share/doc/firmware-loongson-graphics/copyright License
+  sed -i '1,/License: LOONGGPU-graphics-drivers/d' License
+  sed -i '1,/License: LOONGGPU-graphics-drivers/d' License
+  rm -r _firmware
+
+  cd loonggpu-kernel-dkms
+  patch -p1 -i ${srcdir}/0001-support-compressed-firmware-file-like-lg100_cp.bin.z.patch
+}
+
+package_loonggpu() {
+  pkgdesc="Loongson GPU packages"
+  arch=(any)
+  depends=(loonggpu-dkms xf86-video-loonggpu)
+
+  install -Dm644 ${srcdir}/License ${pkgdir}/usr/share/licenses/${pkgname}/License
+}
+
+package_linux-firmware-loonggpu() {
+  pkgdesc="Firmware files for Linux - Firmware for Loongson GPUs"
+  arch=(any)
+  depends=(linux-firmware-whence)
+
+  _pick_file firmware.deb lg100_cp.bin lib/firmware/loonggpu /usr/lib/firmware/loonggpu
+  zstd --rm ${pkgdir}/usr/lib/firmware/loonggpu/lg100_cp.bin
+
+  install -Dm644 ${srcdir}/License ${pkgdir}/usr/share/licenses/${pkgname}/License
+}
+
+package_loonggpu-dkms() {
+  pkgdesc="Kernel module for LG-100/LG-200 video controller (DKMS)"
+  arch=(any)
+  depends=(dkms gcc14 linux-firmware-loonggpu)
+
+  cd loonggpu-kernel-dkms
+  mkdir -p "$pkgdir"/usr/src/loonggpu-$pkgver
+  cp -RL * "$pkgdir"/usr/src/loonggpu-$pkgver
+
+  mkdir -p ${pkgdir}/etc/modprobe.d
+  cat >${pkgdir}/etc/modprobe.d/blacklist-loongson.conf <<EOF
+blacklist loongson
+install loongson /bin/true
+EOF
+
+  install -Dm644 ${srcdir}/License ${pkgdir}/usr/share/licenses/${pkgname}/License
+}
+
+package_mesa-loonggpu() {
+  pkgdesc="Mesa libraries for Loongson GPUs"
+  depends=(mesa mesa-loonggpu)
+
+  _pick_lib loonggl.deb loonggpu /usr/lib
+  _pick_lib loonggl.deb dri /usr/lib
+  _pick_lib libedit.deb libedit.so.2 /usr/lib
+  chmod +x ${pkgdir}/usr/lib/loonggpu/dri/gsgpu_dri.so
+
+  _pick_lib libldrm.deb libldrm.so.1 /usr/lib
+  _pick_lib loonggl.deb libEGL_loonggpu.so.0 /usr/lib
+  _pick_lib loonggl.deb libGLX_loonggpu.so.0 /usr/lib
+  _pick_lib gpucomp.deb libloong-gpucomp.so.1 /usr/lib
+  ln -sf loonggpu/libglapidispatch.so.0 ${pkgdir}/usr/lib/libglapidispatch.so.0
+
+  _pick_file loonggl.deb 60_loonggpu.json usr/share/glvnd/egl_vendor.d /usr/share/glvnd/egl_vendor.d/
+
+  install -Dm644 ${srcdir}/License ${pkgdir}/usr/share/licenses/${pkgname}/License
+}
+
+package_xf86-video-loonggpu() {
+  pkgdesc="Mesa libraries for Loongson GPUs"
+  depends=(mesa-loonggpu)
+
+  _pick_file xf86-video-loonggpu.deb loonggpu_drv.so /usr/lib/xorg/modules/drivers/ /usr/lib/xorg/modules/drivers/
+  chmod +x ${pkgdir}/usr/lib/xorg/modules/drivers/loonggpu_drv.so
+
+  install -Dm644 ${srcdir}/License ${pkgdir}/usr/share/licenses/${pkgname}/License
+}

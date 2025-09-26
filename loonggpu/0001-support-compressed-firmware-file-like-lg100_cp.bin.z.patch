@@ -1,0 +1,38 @@
+From e6fc917b0ddbc48939a0c6f79e1be73bff4949df Mon Sep 17 00:00:00 2001
+From: Xiaotian Wu <yetist@gmail.com>
+Date: Thu, 25 Sep 2025 17:57:20 +0800
+Subject: [PATCH] support compressed firmware file like: lg100_cp.bin.zst
+
+---
+ gsgpu/gsgpu_drv.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/gsgpu/gsgpu_drv.c b/gsgpu/gsgpu_drv.c
+index ede1066..9d77696 100644
+--- a/gsgpu/gsgpu_drv.c
++++ b/gsgpu/gsgpu_drv.c
+@@ -622,7 +622,6 @@ static struct pci_driver loongson_vga_pci_driver = {
+ static int __init gsgpu_init(void)
+ {
+ 	struct pci_dev *pdev = NULL;
+-	struct file *fw_file = NULL;
+ 	int r;
+ 
+ 	if (lg_vgacon_text_force()) {
+@@ -635,13 +634,6 @@ static int __init gsgpu_init(void)
+ 
+ 		if (!gsgpu_lg100_support)
+ 			return -EINVAL;
+-
+-		fw_file = filp_open("/lib/firmware/loonggpu/lg100_cp.bin",
+-				    O_RDONLY, 0600);
+-		if (IS_ERR(fw_file))
+-			return -EINVAL;
+-
+-		filp_close(fw_file, NULL);
+ 	}
+ 
+ 	if (!check_vbios_info()) {
+-- 
+2.51.0
+
