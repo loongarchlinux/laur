@@ -1,5 +1,5 @@
 pkgname=liblol
-pkgver=0.1.9
+pkgver=0.1.10
 pkgrel=1
 pkgdesc="Compatibility layer for running applications designed for Old-World LoongArch systems"
 arch=(loong64)
@@ -8,32 +8,33 @@ license=(GPL-2.0-or-later LGPL-2.1-or-later)
 depends=(la_ow_syscall-dkms glibc)
 makedepends=(git gd python)
 
-glibc_version=2.41
+glibc_version=2.42
 patchelf_version=0.18.0
-libxcrypt_version=4.4.38
+libxcrypt_version=4.5.2
 
 # see https://github.com/AOSC-Dev/aosc-os-abbs/blob/stable/runtime-emulation/liblol/
 source=("https://ftp.gnu.org/gnu/glibc/glibc-${glibc_version}.tar.xz"
-    "https://github.com/NixOS/patchelf/releases/download/${patchelf_version}/patchelf-${patchelf_version}.tar.gz"
-    "https://github.com/besser82/libxcrypt/releases/download/v${libxcrypt_version}/libxcrypt-${libxcrypt_version}.tar.xz"
-    "liblol.conf"
-    )
+  "https://github.com/NixOS/patchelf/releases/download/${patchelf_version}/patchelf-${patchelf_version}.tar.gz"
+  "https://github.com/besser82/libxcrypt/releases/download/v${libxcrypt_version}/libxcrypt-${libxcrypt_version}.tar.xz"
+  "liblol.conf"
+)
 glibc_patches=(
-    0001-add-old-world-abi-compatibility.patch
-    0002-add-sigset-ops.patch
-    0003-add-signal-functions.patch
-    0004-add-sigaction-ucontext-compat.patch
-    0005-add-stubs-for-signal-related-io-funcs.patch
-    0006-add-syscall-fallback-for-stat-at.patch
-    0007-add-more-pthread-symbols.patch
-    0008-remove-clone3-for-compatibility-with-qq.patch
-    0009-prepend-trusted-dirs.patch
-    0010-Add-___brk_addr-symbol.patch
-    0011-siglist-errlist-add-compact-statements.patch
-    )
+  0001-BACKPORT-UPSTREAM-stdlib-resolve-a-double-lock-init-.patch
+  0002-add-old-world-abi-compatibility.patch
+  0003-add-sigset-ops.patch
+  0004-add-signal-functions.patch
+  0005-add-sigaction-ucontext-compat.patch
+  0006-add-stubs-for-signal-related-io-funcs.patch
+  0007-add-syscall-fallback-for-stat-at.patch
+  0008-add-more-pthread-symbols.patch
+  0009-remove-clone3-for-compatibility-with-qq.patch
+  0010-prepend-trusted-dirs.patch
+  0011-Add-___brk_addr-symbol.patch
+  0012-siglist-errlist-add-compact-statements.patch
+)
 patchelf_patches=(
-    0001-add-remap-symvers.patch
-    )
+  0001-add-remap-symvers.patch
+)
 for i in ${glibc_patches[@]}; do
   source+=("https://github.com/AOSC-Dev/liblol/raw/refs/heads/master/autobuild/patches/glibc/$i")
 done
@@ -41,21 +42,22 @@ for i in ${patchelf_patches[@]}; do
   source+=("https://github.com/AOSC-Dev/liblol/raw/refs/heads/master/autobuild/patches/patchelf/$i")
 done
 
-sha256sums=('a5a26b22f545d6b7d7b3dd828e11e428f24f4fac43c934fb071b6a7d0828e901'
+sha256sums=('d1775e32e4628e64ef930f435b67bb63af7599acb6be2b335b9f19f16509f17f'
             '64de10e4c6b8b8379db7e87f58030f336ea747c0515f381132e810dbf84a86e7'
-            '80304b9c306ea799327f01d9a7549bdb28317789182631f1b54f4511b4206dd6'
+            '71513a31c01a428bccd5367a32fd95f115d6dac50fb5b60c779d5c7942aec071'
             'f330d80e91d1b7adba14d2a25c8661140dbe2e0d5b1b33ac0c7bc1c29c1e78de'
-            'c20b882be2b2ecbaac8e7bef1ce9919dfa4be08eb5b13cbd4917979549aafba0'
-            'e33635a3b6b38f129d441faead7a58c1a645da31e8ff1e1d556fde4f08586cf4'
-            '7d4f6b0c52f338ed6b82b107587a2523028eee3db36cc1b60b23ce5be853de66'
-            '7af161800885674e7d41274265426f06c51c831963a3fb1faf83410f563c3bc8'
-            'c5bf3b88150ef9d73fa19e86078f7cd591fa41b2075b5f5e70842417eeb6c8dc'
-            '462a330c9b07fa780db07001d4c09f4446f99f3399a33318f3ff468939399e78'
-            'd037013e02a85bfc36a23798edca7954437d25d7fa80d5fa005e5b416bb61251'
-            'c6fdd6de96187e4d5fe904dad844d8afd911a40bf022abbeb259f06116084713'
-            '253c9b18544d92fd1bb6a840c82c9713b11394658c71643bca5a8e011c7a30ca'
-            '0055ded73723ac97025a38d50098d4628123618f1874b8eacd2231b7fb527b08'
-            'c0417d8214e5b1a5227dc749d65fe01e4eab4f76a6591d437a40a84298b6f3f6'
+            'd90556d1b293e7c53f4707b398596b4bf5a9fac5efa81c599b0f7f66a906e628'
+            'ff2a80dd79013d8b3200b8c6cffe9463a2e0353fa794ed523017debf2cfab404'
+            'ebda4508bdd03ee3930e413ca1f4a33842b192e4247059ec474ef54f5e2491cd'
+            'd351803460b9f64fab504edfdc791acdc924eeccd24d68acf4f8159f0ce69cf6'
+            'e8c6c594cdf8579084e0bbe9175f5d52ca1c069e59ad8d9ca6ce7559a5e4d3af'
+            '5eee400482863ee81a8f2552ca7c90f220d9c0e0b3226cd62aaf49f5d02f3e73'
+            '48227a09c423b3f6dda6f6594c99a12ef96b8a32f69742fdc22e8a4ca318568c'
+            '9fe805187d54c5e8138e7179560155b43f6ce937fff89f699fe1d823084a4125'
+            '7a8d4d201bd2c435c3e10ed0ef7b5288de3704d97ec5652a527d84f9d9240cd2'
+            'f41a34da5b584c6bb9342e6ec36bc9f4956a7b4dd75d700f4484d24655f7d739'
+            'f99228d7efc6dc58a20aaa3570fd2ee98f2e5cc69539a4f4ff488818992a851b'
+            '2234cd5aeb36158fe3329f4078179f42f33f29b9e71e3aa44ccb3a981240ba4b'
             '39c0bdea63724792e8073b6bcca616099e9edef8d325c203dae99228fcb24504')
 install="${pkgname}.install"
 options=(strip !debug)
@@ -78,38 +80,38 @@ prepare() {
 
   mkdir -p glibc-build
   (
-   cd patchelf
-   autoreconf -fiv
+    cd patchelf
+    autoreconf -fiv
   )
 }
 
 build() {
 
-# build patchelf
+  # build patchelf
   (
-   cd patchelf
-   ./configure --prefix=/usr
-   make
+    cd patchelf
+    ./configure --prefix=/usr
+    make
   )
 
   local _glibc_configure_flags=(
-      --prefix=/usr
-      --with-headers=/usr/include
-      --with-bugurl=https://github.com/loongarchlinux/core/issues
-      --enable-bind-now
-      --enable-fortify-source
-      --enable-kernel=4.4
-      --enable-multi-arch
-      --enable-stack-protector=strong
-      --enable-systemtap
-      --disable-nscd
-      --disable-profile
-      --enable-obsolete-api=no
-      --enable-obsolete-rpc
-      --disable-werror
+    --prefix=/usr
+    --with-headers=/usr/include
+    --with-bugurl=https://github.com/loongarchlinux/core/issues
+    --enable-bind-now
+    --enable-fortify-source
+    --enable-kernel=4.4
+    --enable-multi-arch
+    --enable-stack-protector=strong
+    --enable-systemtap
+    --disable-nscd
+    --disable-profile
+    --enable-obsolete-api=no
+    --enable-obsolete-rpc
+    --disable-werror
   )
 
-# build glibc
+  # build glibc
   (
     cd glibc-build
 
@@ -117,7 +119,7 @@ build() {
     cflags_common="-O2 -g -ffile-prefix-map=${startdir}=."
     ldflags_common="-Wl,-O1,--sort-common,--as-needed -Wl,-build-id=sha1"
 
-    cat > configparms <<EOF
+    cat >configparms <<EOF
 slibdir = /usr/lib
 rtlddir = /usr/lib
 sbindir = /usr/bin
@@ -136,38 +138,38 @@ LDFLAGS = $ldflags_common
 EOF
 
     "${srcdir}"/glibc/configure \
-        --libdir=/usr/lib \
-        --libexecdir=/usr/lib \
-        --enable-cet \
-	--without-gd \
-	--enable-crypt \
-        "${_glibc_configure_flags[@]}"
+      --libdir=/usr/lib \
+      --libexecdir=/usr/lib \
+      --enable-cet \
+      --without-gd \
+      --enable-crypt \
+      "${_glibc_configure_flags[@]}"
 
     make -O
 
     msg "Generating a dummy ld-linux-loongarch-lp64d.so.1 ..."
     gcc -shared \
-    -x c /dev/null \
-    -o ld-linux-loongarch-lp64d.so.1 \
-    -Wl,--version-script -Wl,ld.map \
-    -nostdlib \
-    $cflags_common \
-    $ldflags_common
+      -x c /dev/null \
+      -o ld-linux-loongarch-lp64d.so.1 \
+      -Wl,--version-script -Wl,ld.map \
+      -nostdlib \
+      $cflags_common \
+      $ldflags_common
   )
 
-# build libxcrypt
+  # build libxcrypt
   (
-   cd libxcrypt
-   ./configure \
-       --prefix=/usr \
-       --disable-werror \
-       --enable-shared \
-       --disable-xcrypt-compat-files \
-       --enable-obsolete-api=glibc \
-       CFLAGS="$cflags_common" \
-       LDFLAGS="$ldflags_common"
-   rm -f crypt-symbol-vers.h crypt-symbol-vers.h.stamp
-   make "SYMVER_FLOOR=GLIBC_2.27"
+    cd libxcrypt
+    ./configure \
+      --prefix=/usr \
+      --disable-werror \
+      --enable-shared \
+      --disable-xcrypt-compat-files \
+      --enable-obsolete-api=glibc \
+      CFLAGS="$cflags_common" \
+      LDFLAGS="$ldflags_common"
+    rm -f crypt-symbol-vers.h crypt-symbol-vers.h.stamp
+    make "SYMVER_FLOOR=GLIBC_2.27"
   )
 }
 
@@ -179,38 +181,38 @@ package() {
   make -C glibc-build DESTDIR="${pkgdir}" install
 
   fix_libs=(
-      ld.so.1
-      libanl.so.1
-      libBrokenLocale.so.1
-      libc.so.6
-      libc_malloc_debug.so.0
-      libdl.so.2
-      libm.so.6
-      libnsl.so.1
-      libnss_compat.so.2
-      libnss_db.so.2
-      libnss_dns.so.2
-      libnss_files.so.2
-      libnss_hesiod.so.2
-      libpthread.so.0
-      libresolv.so.2
-      librt.so.1
-      libthread_db.so.1
-      libutil.so.1
-      )
+    ld.so.1
+    libanl.so.1
+    libBrokenLocale.so.1
+    libc.so.6
+    libc_malloc_debug.so.0
+    libdl.so.2
+    libm.so.6
+    libnsl.so.1
+    libnss_compat.so.2
+    libnss_db.so.2
+    libnss_dns.so.2
+    libnss_files.so.2
+    libnss_hesiod.so.2
+    libpthread.so.0
+    libresolv.so.2
+    librt.so.1
+    libthread_db.so.1
+    libutil.so.1
+  )
 
   pthread_map="GLIBC_2.27=GLIBC_2.0,GLIBC_2.2,GLIBC_2.2.1,GLIBC_2.2.2,GLIBC_2.2.3,GLIBC_2.2.4,GLIBC_2.2.6,GLIBC_2.3,GLIBC_2.3.2,GLIBC_2.3.3,GLIBC_2.3.4,GLIBC_2.4,GLIBC_2.5,GLIBC_2.6,GLIBC_2.7,GLIBC_2.8,GLIBC_2.9,GLIBC_2.10,GLIBC_2.11,GLIBC_2.12,GLIBC_2.13,GLIBC_2.14,GLIBC_2.15,GLIBC_2.16,GLIBC_2.17,GLIBC_2.18,GLIBC_2.19,GLIBC_2.20,GLIBC_2.21,GLIBC_2.22,GLIBC_2.23,GLIBC_2.24,GLIBC_2.25,GLIBC_2.26"
   libc_map="GLIBC_2.36=GLIBC_2.27,GLIBC_2.28"
 
   for i in libpthread.so.0 libc.so.6; do
     $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 64 * 1024 ))" \
+      --page-size "$((64 * 1024))" \
       --remap-symvers "$pthread_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
 
     $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 64 * 1024 ))" \
+      --page-size "$((64 * 1024))" \
       --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
@@ -218,7 +220,7 @@ package() {
 
   for i in "${fix_libs[@]}"; do
     $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 64 * 1024 ))" \
+      --page-size "$((64 * 1024))" \
       --remap-symvers "$libc_map" \
       --also-remap-verneed \
       "${pkgdir}/usr/lib/$i"
@@ -226,14 +228,14 @@ package() {
 
   make -C libxcrypt DESTDIR="${pkgdir}" install
   $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 64 * 1024 ))" \
-      --remap-symvers "$libc_map" \
-      "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
+    --page-size "$((64 * 1024))" \
+    --remap-symvers "$libc_map" \
+    "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
 
   $srcdir/patchelf/src/patchelf \
-      --page-size "$(( 64 * 1024 ))" \
-      --replace-needed "ld-linux-loongarch-lp64d.so.1" "ld.so.1" \
-      "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
+    --page-size "$((64 * 1024))" \
+    --replace-needed "ld-linux-loongarch-lp64d.so.1" "ld.so.1" \
+    "${pkgdir}/usr/lib/libcrypt.so.1.1.0"
 
   rm -f ${pkgdir}/usr/lib/{*.a,*.o,*.so}
   rm -rf ${pkgdir}/usr/lib/{audit,gconv,pkgconfig}
